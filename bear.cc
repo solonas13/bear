@@ -1,0 +1,766 @@
+/**
+    BEAR: BEst-Aigned Rotations
+    Copyright (C) 2014 Solon P. Pissis. 
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+#include <iostream>
+#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <float.h>
+#include <omp.h>
+#include "beardefs.h"
+
+int main(int argc, char **argv)
+{
+
+	struct TSwitch  sw;
+
+	FILE *          in_fd;                  // the input file descriptor
+	FILE *          out_fd;                 // the output file descriptor
+	FILE *          outl_fd;                // the outliers file descriptor
+        char *          patterns_filename;      // the patterns input file name
+        char *          text_filename;          // the text input file name
+        char *          output_filename;        // the output file name
+        char *          rotations_filename;     // the rotations file name
+        char *          outliers_filename;      // the outliers file name
+	struct TPat   * pat     = NULL;
+        unsigned char ** seq    = NULL;         // the sequence(s) in memory
+        unsigned char ** seq_id = NULL;         // the sequence(s) id in memory
+        unsigned char *  t_id   = NULL;         // the text id in memory
+        unsigned char *  t      = NULL;         // the text in memory
+	char *          alphabet;               // the alphabet
+	unsigned int    i, j;
+	unsigned int    d;	
+	unsigned int    total_length = 0;
+
+	/* Decodes the arguments */
+        i = decode_switches ( argc, argv, &sw );
+
+	/* Check the arguments */
+        if ( i < 8 )
+        {
+                usage ();
+                return ( 1 );
+        }
+        else
+        {
+                if      ( ! strcmp ( "DNA", sw . alphabet ) )   { alphabet = ( char * ) DNA;  sw . matrix = 0; }
+                else if ( ! strcmp ( "PROT", sw . alphabet ) )  { alphabet = ( char * ) PROT; sw . matrix = 1; }
+                else
+                {
+                        fprintf ( stderr, " Error: alphabet argument a should be `DNA' for nucleotide sequences or `PROT' for protein sequences or `USR' for sequences over a user-defined alphabet!\n" );
+                        return ( 1 );
+                }
+
+		d       = sw . d;
+		if ( d == 1 )
+		{
+			if ( sw . R <= 0 || sw . R >= 1 )
+			{
+				fprintf ( stderr, " Error: The similarity ratio (-R) must be in (0,1)!\n" );
+				return ( 1 );
+			}
+			if ( sw . O >= 0 )
+			{
+				fprintf ( stderr, " Error: The gap opening penalty (-O) must be < 0!\n" );
+				return ( 1 );
+			}
+			if ( sw . E >= 0 )
+			{
+				fprintf ( stderr, " Error: The gap extension penalty (-E) must be < 0!\n" );
+				return ( 1 );
+			}
+		}
+		if ( d == 2 || d == 3 )
+		{
+			if ( sw . w > WORD_LEN - 1 )
+			{
+				fprintf ( stderr, " Error: The length of factor (-w) must be smaller than %d!\n", WORD_LEN );
+				return ( 1 );
+			}
+			if ( sw . w <= 0 )
+			{
+				fprintf ( stderr, " Error: The length of factor (-w) must be larger than 1!\n" );
+				return ( 1 );
+			}
+		}	
+
+                patterns_filename       = sw . patterns_filename;
+		if ( patterns_filename == NULL )
+		{
+			fprintf ( stderr, " Error: Cannot open file for input!\n" );
+			return ( 1 );
+		}
+		output_filename         = sw . output_filename;
+		
+                text_filename           = sw . text_filename;
+                rotations_filename      = sw . rotations_filename;
+                outliers_filename       = sw . outliers_filename;
+
+                if ( text_filename != NULL && rotations_filename != NULL  )
+		{
+			fprintf ( stderr, " Error: Text filename cannot be used with rotations filename!\n" );
+			return ( 1 );
+		}
+                if ( outliers_filename != NULL && rotations_filename != NULL  )
+		{
+			fprintf ( stderr, " Error: Outliers filename cannot be used with rotations filename!\n" );
+			return ( 1 );
+		}
+                if ( outliers_filename != NULL && text_filename != NULL  )
+		{
+			fprintf ( stderr, " Error: Outliers filename cannot be used with text filename!\n" );
+			return ( 1 );
+		}
+		omp_set_num_threads( sw . T );
+        }
+
+
+	double start = gettime();
+
+	/* Read the (Multi)FASTA file in memory */
+	if ( ! ( in_fd = fopen ( patterns_filename, "r") ) )
+	{
+		fprintf ( stderr, " Error: Cannot open file %s!\n", patterns_filename );
+		return ( 1 );
+	}
+
+	char c;
+        unsigned int num_seqs = 0;           // the total number of sequences considered
+	unsigned int max_alloc_seq_id = 0;
+	unsigned int max_alloc_seq = 0;
+	c = fgetc( in_fd );
+	do
+	{
+		if ( c != '>' )
+		{
+			fprintf ( stderr, " Error: input file %s is not in FASTA format!\n", patterns_filename );
+			return ( 1 );
+		}
+		else
+		{
+			if ( num_seqs >= max_alloc_seq_id )
+			{
+				seq_id = ( unsigned char ** ) realloc ( seq_id,   ( max_alloc_seq_id + ALLOC_SIZE ) * sizeof ( unsigned char * ) );
+				max_alloc_seq_id += ALLOC_SIZE;
+			}
+
+			unsigned int max_alloc_seq_id_len = 0;
+			unsigned int seq_id_len = 0;
+
+			seq_id[ num_seqs ] = NULL;
+
+			while ( ( c = fgetc( in_fd ) ) != EOF && c != '\n' )
+			{
+				if ( seq_id_len >= max_alloc_seq_id_len )
+				{
+					seq_id[ num_seqs ] = ( unsigned char * ) realloc ( seq_id[ num_seqs ],   ( max_alloc_seq_id_len + ALLOC_SIZE ) * sizeof ( unsigned char ) );
+					max_alloc_seq_id_len += ALLOC_SIZE;
+				}
+				seq_id[ num_seqs ][ seq_id_len++ ] = c;
+			}
+			seq_id[ num_seqs ][ seq_id_len ] = '\0';
+			
+		}
+
+		if ( num_seqs >= max_alloc_seq )
+		{
+			seq = ( unsigned char ** ) realloc ( seq,   ( max_alloc_seq + ALLOC_SIZE ) * sizeof ( unsigned char * ) );
+			max_alloc_seq += ALLOC_SIZE;
+		}
+
+		unsigned int seq_len = 0;
+		unsigned int max_alloc_seq_len = 0;
+
+		seq[ num_seqs ] = NULL;
+
+		while ( ( c = fgetc( in_fd ) ) != EOF && c != '>' )
+		{
+			if( seq_len == 0 && c == '\n' )
+			{
+				fprintf ( stderr, " Omitting empty sequence in file %s!\n", patterns_filename );
+				c = fgetc( in_fd );
+				break;
+			}
+			if( c == '\n' || c == ' ' ) continue;
+
+			c = toupper( c );
+
+			if ( seq_len >= max_alloc_seq_len )
+			{
+				seq[ num_seqs ] = ( unsigned char * ) realloc ( seq[ num_seqs ],   ( max_alloc_seq_len + ALLOC_SIZE ) * sizeof ( unsigned char ) );
+				max_alloc_seq_len += ALLOC_SIZE;
+			}
+
+			if( strchr ( alphabet, c ) )
+			{
+				seq[ num_seqs ][ seq_len++ ] = c;
+			}
+			else
+			{
+				fprintf ( stderr, " Error: input file %s contains an unexpected character %c!\n", patterns_filename, c );
+				return ( 1 );
+			}
+
+		}
+
+		if( seq_len != 0 )
+		{
+			if ( seq_len >= max_alloc_seq_len )
+			{
+				seq[ num_seqs ] = ( unsigned char * ) realloc ( seq[ num_seqs ],   ( max_alloc_seq_len + ALLOC_SIZE ) * sizeof ( unsigned char ) ); 
+				max_alloc_seq_len += ALLOC_SIZE;
+			}
+			seq[ num_seqs ][ seq_len ] = '\0';
+			total_length += seq_len;
+			num_seqs++;
+		}
+		
+	} while( c != EOF );
+
+	seq[ num_seqs ] = NULL;
+
+	pat = ( TPat * ) calloc ( num_seqs , sizeof ( TPat ) ); 
+	if( ( pat == NULL) ) 
+	{
+		fprintf( stderr, " Error: Cannot allocate memory!\n" );
+		exit( EXIT_FAILURE );
+	}
+
+	for ( i = 0; i < num_seqs; i ++ )
+	{
+		if ( i == 0 )	pat[i] . start = 0;
+		else 		pat[i] . start  += pat[i - 1] . start + strlen ( ( char * ) seq[ i - 1 ] );
+		pat[i] . offset = 0;
+	}
+
+	if ( fclose ( in_fd ) )
+	{
+		fprintf( stderr, " Error: file close error!\n");
+		return ( 1 );
+	}
+
+	if ( rotations_filename != NULL )
+	{
+		if ( ! ( out_fd = fopen ( rotations_filename, "w") ) )
+		{
+			fprintf ( stderr, " Error: Cannot open file %s!\n", rotations_filename );
+			return ( 1 );
+		}
+		for ( i = 0; i < num_seqs; i ++ )
+		{
+			unsigned char * tmp;
+			unsigned int l = strlen ( ( char * ) seq[i] );
+			tmp = ( unsigned char * ) malloc ( ( l + 1 ) * sizeof ( unsigned char ) );
+			if( ( tmp == NULL) ) 
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+			int cp = rand() % ( l ) + 1;
+			memcpy ( tmp, &seq[i][cp], l - cp );
+			memcpy ( &tmp[l - cp], &seq[i][0], cp ); 
+			tmp[l] = '\0';
+			fprintf( out_fd, ">%s\n", seq_id[i]);
+			fprintf( out_fd, "%s\n", tmp);
+			free ( tmp );
+		}
+		if ( fclose ( out_fd ) )
+		{
+			fprintf( stderr, " Error: file close error!\n");
+			return ( 1 );
+		}
+	}
+	else if ( text_filename != NULL )
+	{
+		if ( ! ( in_fd = fopen ( text_filename, "r") ) )
+		{
+			fprintf ( stderr, " Error: Cannot open file %s!\n", text_filename );
+			return ( 1 );
+		}
+
+		c = fgetc( in_fd );
+		if ( c != '>' )
+		{
+			fprintf ( stderr, " Error: input file %s is not in FASTA format!\n", text_filename );
+			return ( 1 );
+		}
+		else
+		{
+			unsigned int max_alloc_t_id_len = 0;
+			unsigned int t_id_len = 0;
+
+			while ( ( c = fgetc( in_fd ) ) != EOF && c != '\n' )
+			{
+				if ( t_id_len >= max_alloc_t_id_len )
+				{
+					t_id = ( unsigned char * ) realloc ( t_id,   ( max_alloc_t_id_len + ALLOC_SIZE ) * sizeof ( unsigned char ) );
+					max_alloc_t_id_len += ALLOC_SIZE;
+				}
+				t_id[ t_id_len++ ] = c;
+			}
+			t_id[ t_id_len ] = '\0';
+			
+		}
+
+		unsigned int t_len = 0;
+		unsigned int max_alloc_t_len = 0;
+
+		while ( ( c = fgetc( in_fd ) ) != EOF )
+		{
+			if( t_len == 0 && c == '\n' )
+			{
+				fprintf ( stderr, " Omitting empty sequence in file %s!\n", text_filename );
+				c = fgetc( in_fd );
+				break;
+			}
+			if( c == '\n' ) continue;
+
+			c = toupper( c );
+
+			if ( t_len >= max_alloc_t_len )
+			{
+				t = ( unsigned char * ) realloc ( t,   ( max_alloc_t_len + ALLOC_SIZE ) * sizeof ( unsigned char ) );
+				max_alloc_t_len += ALLOC_SIZE;
+			}
+
+			if( strchr ( alphabet, c ) )
+			{
+				t[ t_len++ ] = c;
+			}
+			else
+			{
+				fprintf ( stderr, " Error: input file %s contains an unexpected character %c!\n", text_filename, c );
+				return ( 1 );
+			}
+
+		}
+
+		if( t_len != 0 )
+		{
+			if ( t_len >= max_alloc_t_len )
+			{
+				t = ( unsigned char * ) realloc ( t,   ( max_alloc_t_len + ALLOC_SIZE ) * sizeof ( unsigned char ) ); 
+				max_alloc_t_len += ALLOC_SIZE;
+			}
+			t[ t_len ] = '\0';
+		}
+
+		if ( fclose ( in_fd ) )
+		{
+			fprintf( stderr, " Error: file close error!\n");
+			return ( 1 );
+		}
+
+		/* Allocate the occurences structure */
+		TPOcc ** POcc = NULL;
+		POcc = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) ); 
+		if( ( POcc == NULL) ) 
+		{
+			fprintf( stderr, " Error: Cannot allocate memory!\n" );
+			exit( EXIT_FAILURE );
+		}
+
+		for ( i = 0; i < num_seqs; i ++ )
+			POcc[i] = NULL;
+
+		unsigned int * NOcc;
+		NOcc = ( unsigned int * ) calloc ( num_seqs , sizeof ( unsigned int ) );
+		if( ( NOcc == NULL) )
+		{
+			fprintf( stderr, " Error: Cannot allocate memory!\n" );
+			exit( EXIT_FAILURE );
+		}
+		
+		/* Multiple Circular Approximate String Matching */
+		if ( d == 0 )
+		{
+			if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
+			{
+				fprintf( stderr, " Error: macsmf_ms() failed!\n" );
+				exit(EXIT_FAILURE);
+			}
+		}
+		else
+		{
+			if ( ! ( macsmf_ed ( seq, t, sw, &POcc, &NOcc ) ) )
+			{
+				fprintf( stderr, " Error: macsmf_ms() failed!\n" );
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		if ( ! ( out_fd = fopen ( output_filename, "w") ) )
+		{
+			fprintf ( stderr, " Error: Cannot open file %s!\n", output_filename );
+			return ( 1 );
+		}
+
+		for ( i = 0; i < num_seqs; i ++ )
+		{
+			for ( int j = 0; j < NOcc[i]; j ++ )
+			{
+				if ( d == 0 )
+					fprintf( out_fd, "%s %s %d %d %d\n", seq_id[i], seq[i], POcc[i][j] . pos, ( int ) POcc[i][j] . err, POcc[i][j] . rot );
+				else
+					fprintf( out_fd, "%s %s %d %lf %d\n", seq_id[i], seq[i], POcc[i][j] . pos, POcc[i][j] . err, POcc[i][j] . rot );
+			}
+		}
+
+		
+		if ( fclose ( out_fd ) )
+		{
+			fprintf( stderr, " Error: file close error!\n");
+			return ( 1 );
+		}
+
+		free ( t_id );
+		free ( t );
+		free ( NOcc );
+		for ( i = 0; i < num_seqs; i ++ )
+			free ( POcc[i] );
+		free ( POcc);
+	}
+	else
+	{
+		TPOcc ** D;
+
+		int * R;
+		R = ( int * ) calloc ( num_seqs , sizeof ( int ) );
+
+		if ( d == 0 || d == 1  ) 
+		{
+			/* Create the text */
+			t = ( unsigned char * ) malloc ( ( total_length + 1 ) * sizeof ( unsigned char ) );
+			unsigned int j = 0;
+			for ( i = 0; i < num_seqs; i ++ )
+			{
+				unsigned int l = strlen ( ( char * ) seq[i] );
+				memcpy ( &t[j], &seq[i][0], l );
+				j += l;
+			}
+			t[ total_length ] = '\0';
+
+			/* Allocate the occurences structure */
+			TPOcc ** POcc = NULL;
+			POcc = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) ); 
+			if( ( POcc == NULL) ) 
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+
+			for ( i = 0; i < num_seqs; i ++ )
+				POcc[i] == NULL;
+
+			unsigned int * NOcc;
+			NOcc = ( unsigned int * ) calloc ( num_seqs , sizeof ( unsigned int ) );
+			if( ( NOcc == NULL) )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+			
+			/* Multiple Circular Approximate String Matching */
+			if ( d == 0 )
+			{
+				if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
+				{
+					fprintf( stderr, " Error: macsmf_ms() failed!\n" );
+					exit(EXIT_FAILURE);
+				}
+			}
+			if ( d == 1 )
+			{
+				/* Estimate the minimum pairwise allowed similarity */
+				double total_score = 0;
+				for ( i = 0; i < num_seqs; i ++ )
+				{
+					unsigned int l = strlen ( ( char * ) seq[i] );
+					for ( int j = 0; j < l; j++ )
+						total_score += ( sw . matrix ? pro_delta( seq[i][j], seq[i][j] ) : nuc_delta( seq[i][j], seq[i][j] ) ) ;
+				}
+				sw . min_sim = ( total_score * sw . R ) / ( num_seqs );
+
+				if ( ! ( macsmf_ed ( seq, t, sw, &POcc, &NOcc ) ) )
+				{
+					fprintf( stderr, " Error: macsmf_ms() failed!\n" );
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			D = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) );
+			if( ( D == NULL) )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+
+			for ( i = 0; i < num_seqs; i ++ )
+			{
+				D[i] = ( TPOcc * ) calloc ( num_seqs , sizeof ( TPOcc ) );
+				if( ( D[i] == NULL) )
+				{
+					fprintf( stderr, " Error: Cannot allocate memory!\n" );
+					exit( EXIT_FAILURE );
+				}
+
+				/* Initialise the array */
+				for ( j = 0; j < num_seqs; j++ )
+				{
+					if ( d == 0 )
+						D[i][j] . err = strlen ( ( char * ) seq[i] ) - 1;
+					else
+						D[i][j] . err = -DBL_MAX;
+				}
+			}
+
+			for ( i = 0; i < num_seqs; i ++ )
+			{
+				for ( j = 0; j < NOcc[i]; j ++ )
+				{
+					int l = binSearch( POcc[i][j] . pos, pat, num_seqs );
+					if ( d == 0 )
+					{
+						if ( l >= 0 && D[i][l] . err > POcc[i][j] . err )	
+						{
+							D[i][l] . err = POcc[i][j] . err;
+							D[i][l] . pos = POcc[i][j] . pos;
+							D[i][l] . rot = POcc[i][j] . rot;
+						}
+					}
+					else
+					{
+						if ( l >= 0 && D[i][l] . err < POcc[i][j] . err )	
+						{
+							D[i][l] . err = POcc[i][j] . err;
+							D[i][l] . pos = POcc[i][j] . pos;
+							D[i][l] . rot = POcc[i][j] . rot;
+						}
+					}
+				}
+			}
+			free ( t );
+			free ( NOcc );
+			for ( i = 0; i < num_seqs; i ++ )
+			{
+				free ( POcc[i] );
+				POcc[i] = NULL;
+			}
+			free ( POcc );
+		}
+
+		if ( d == 2 || d == 3 )
+		{	
+			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+
+			/* For every sequence i */
+			#pragma omp parallel for
+			for ( int i = 0; i < num_seqs; i++ )
+			{
+				/* Create a sequence of length mm with all factors of length sw . w of the rotations of seq[i] */
+				unsigned int m = strlen ( ( char * ) seq[i] );
+				unsigned char * xiw;
+				xiw = ( unsigned char * ) calloc (  m + sw . w, sizeof( unsigned char ) );
+				memmove( &xiw[0], seq[i], m );
+				memmove( &xiw[m], seq[i], sw . w - 1 );
+				xiw[m + sw . w - 1] = '\0';
+				unsigned int mm = m + sw . w - 1;
+
+				if ( ( D[i] = ( TPOcc * ) calloc ( ( num_seqs ) , sizeof( TPOcc ) ) ) == NULL )
+				{
+					fprintf( stderr, " Error: Cannot allocate memory!\n" );
+					exit( EXIT_FAILURE );
+				}
+
+				for ( int ii = 0; ii < num_seqs; ii ++ )
+				{
+					if ( i == ii ) continue;
+
+					TPOcc * M;
+
+					/* Each row M[ii] stores the coordinates M . rot of the best match of length sw . w with every other sequence ii */
+					if ( ( M = ( TPOcc * ) calloc ( ( mm ) , sizeof( TPOcc ) ) ) == NULL )
+					{
+						fprintf( stderr, " Error: M could not be allocated!\n");
+						exit ( 1 );
+					}
+
+					/* Initialise the arrays */
+					for ( int jj = 0; jj < num_seqs; jj++ )
+						M[jj] . err = m - 1;
+					D[i][ii] . err = m  - 1;
+
+					/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
+					unsigned int n = strlen ( ( char * ) seq[ii] );
+					unsigned char * xjw;
+					xjw = ( unsigned char * ) calloc (  n + sw . w, sizeof( unsigned char ) );
+					memmove( &xjw[0], seq[ii], n );
+					memmove( &xjw[n], seq[ii], sw . w - 1 );
+					xjw[n + sw . w - 1] = '\0';
+					unsigned int nn = n + sw . w - 1;
+
+					if ( d == 2 )
+						bcf_maxshift_hd_ls ( xiw, mm, xjw, nn, sw, M );
+					else
+						bcf_maxshift_ed_ls ( xiw, mm, xjw, nn, sw, M );
+
+					free ( xjw );
+
+					unsigned int min_dist = m - 1;
+
+					/* Here we add the total score among ALL sequences */
+					for ( int jj = sw . w - 1; jj < mm; jj ++ )
+					{
+						if ( min_dist > M[jj] . err )
+						{
+							min_dist = M[jj] . err;
+							D[i][ii] . err = M[jj] . err;
+
+							if ( jj >= M[jj] . rot )
+								D[i][ii] . rot = jj - M[jj] . rot;
+							else
+								D[i][ii] . rot = jj + m - M[jj] . rot;		
+						}
+					}
+					free ( M );
+				}
+
+				free ( xiw );
+				
+			}	
+		}
+
+		#if 0
+		for ( int i = 0; i < num_seqs; i ++ )
+		{
+			for ( int j = 0; j < num_seqs; j ++ )
+			{
+				fprintf( stderr, "%lf ", D[i][j] . err );
+			}
+			fprintf( stderr, "\n"  );
+		}
+		#endif
+
+		if ( d == 0 || d == 2 || d == 3 )
+			upgma_dist ( D, num_seqs, sw, R );
+		if ( d == 1 )
+			upgma_sim ( D, num_seqs, sw, R );
+		
+		for ( i = 0; i < num_seqs; i ++ )
+		{
+			if ( R[i] >= 0 )
+				R[i] = R[i] % strlen ( ( char * ) seq[i] );
+		}
+
+		if ( ! ( out_fd = fopen ( output_filename, "w") ) )
+		{
+			fprintf ( stderr, " Error: Cannot open file %s!\n", output_filename );
+			return ( 1 );
+		}
+
+		if ( outliers_filename != NULL )
+		{
+			if ( ! ( outl_fd = fopen ( outliers_filename, "w") ) )
+			{
+				fprintf ( stderr, " Error: Cannot open file %s!\n", outliers_filename );
+				return ( 1 );
+			}
+		}
+
+		unsigned int succ = 0;
+		for ( i = 0; i < num_seqs; i ++ )
+		{
+			if ( R[i] >= 0 )
+			{
+				unsigned char * rotation;
+				unsigned int m = strlen ( ( char * ) seq[i] );
+				rotation = ( unsigned char * ) calloc ( m + 1, sizeof ( unsigned char ) );
+				create_rotation ( seq[i], R[i], rotation );
+				fprintf( out_fd, ">%s\n", seq_id[i] );
+				fprintf( out_fd, "%s\n", rotation );
+				free ( rotation );
+				succ++;
+			}
+			else
+			{
+				if ( outliers_filename != NULL )
+				{
+					fprintf( outl_fd, ">%s\n", ( char * ) seq_id[i] );
+					fprintf( outl_fd, "%s\n", ( char * ) seq[i] );	
+				}
+			}
+				
+		}
+
+		fprintf ( stderr, "%d/%d sequences were succesfully rotated.\n", succ, num_seqs );
+
+		if ( fclose ( out_fd ) )
+		{
+			fprintf( stderr, " Error: file close error!\n");
+			return ( 1 );
+		}
+
+		if ( outliers_filename != NULL )
+		{
+			if ( fclose ( outl_fd ) )
+			{
+				fprintf( stderr, " Error: file close error!\n");
+				return ( 1 );
+			}
+		}
+
+		free ( R );
+		for ( i = 0; i < num_seqs; i ++ )
+		{
+			free ( D[i] );
+		}
+		free ( D );
+
+	}
+
+	double end = gettime();
+
+        fprintf( stderr, "Elapsed time for processing %d sequence(s): %lf secs.\n", num_seqs, ( end - start ) );
+	
+	/* Deallocate */
+	for ( i = 0; i < num_seqs; i ++ )
+	{
+		free ( seq[i] );
+		free ( seq_id[i] );
+	}	
+	free ( seq );
+	free ( seq_id );
+	free ( pat );
+        free ( sw . patterns_filename );
+	if ( outliers_filename != NULL )
+        	free ( sw . outliers_filename );
+	if ( text_filename != NULL )
+        	free ( sw . text_filename );
+	if ( rotations_filename != NULL )
+        	free ( sw . rotations_filename );
+        free ( sw . output_filename );
+        free ( sw . alphabet );
+
+	return ( 0 );
+}
