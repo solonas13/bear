@@ -1,5 +1,5 @@
 /**
-    BEAR: BEst-Aigned Rotations
+    BEAR
     Copyright (C) 2014 Solon P. Pissis. 
 
     This program is free software: you can redistribute it and/or modify
@@ -135,6 +135,7 @@ int main(int argc, char **argv)
 	double start = gettime();
 
 	/* Read the (Multi)FASTA file in memory */
+	fprintf ( stderr, " Reading the (Multi)FASTA input file: %s\n", patterns_filename );
 	if ( ! ( in_fd = fopen ( patterns_filename, "r") ) )
 	{
 		fprintf ( stderr, " Error: Cannot open file %s!\n", patterns_filename );
@@ -289,6 +290,7 @@ int main(int argc, char **argv)
 	}
 	else if ( text_filename != NULL )
 	{
+		fprintf ( stderr, " Reading the FASTA input file: %s\n", text_filename );
 		if ( ! ( in_fd = fopen ( text_filename, "r") ) )
 		{
 			fprintf ( stderr, " Error: Cannot open file %s!\n", text_filename );
@@ -326,9 +328,8 @@ int main(int argc, char **argv)
 		{
 			if( t_len == 0 && c == '\n' )
 			{
-				fprintf ( stderr, " Omitting empty sequence in file %s!\n", text_filename );
-				c = fgetc( in_fd );
-				break;
+				fprintf ( stderr, " Error: empty sequence in file %s!\n", text_filename );
+				return ( 1 );
 			}
 			if( c == '\n' ) continue;
 
@@ -389,6 +390,7 @@ int main(int argc, char **argv)
 		}
 		
 		/* Multiple Circular Approximate String Matching */
+		fprintf ( stderr, " Starting the multiple circular approximate string matching\n" );
 		if ( d == 0 )
 		{
 			if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
@@ -406,6 +408,7 @@ int main(int argc, char **argv)
 			}
 		}
 
+		fprintf ( stderr, " Preparing the output\n" );
 		if ( ! ( out_fd = fopen ( output_filename, "w") ) )
 		{
 			fprintf ( stderr, " Error: Cannot open file %s!\n", output_filename );
@@ -446,6 +449,7 @@ int main(int argc, char **argv)
 
 		if ( d == 0 || d == 1  ) 
 		{
+			fprintf ( stderr, " Starting the LDS method\n" );
 			/* Create the text */
 			t = ( unsigned char * ) malloc ( ( total_length + 1 ) * sizeof ( unsigned char ) );
 			unsigned int j = 0;
@@ -568,6 +572,7 @@ int main(int argc, char **argv)
 
 		if ( d == 2 || d == 3 )
 		{	
+			fprintf ( stderr, " Starting the MDS method\n" );
 			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
 			{
 				fprintf( stderr, " Error: Cannot allocate memory!\n" );
@@ -662,11 +667,13 @@ int main(int argc, char **argv)
 		}
 		#endif
 
+		fprintf ( stderr, " Starting the clustering\n" );
 		if ( d == 0 || d == 2 || d == 3 )
 			upgma_dist ( D, num_seqs, sw, R );
 		if ( d == 1 )
 			upgma_sim ( D, num_seqs, sw, R );
 		
+		fprintf ( stderr, " Preparing the output\n" );
 		for ( i = 0; i < num_seqs; i ++ )
 		{
 			if ( R[i] >= 0 )
