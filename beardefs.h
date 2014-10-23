@@ -20,7 +20,7 @@
 #define DEL                     '$'
 #define DEL_STR                 "$"
 #define ERR                      24
-#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*"   //Proteins alphabet
+#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*UO"   //Proteins alphabet
 #define DNA                     "ATGCSWRYKMBVHDN"            //IUPAC alphabet
 #define NUC_SCORING_MATRIX_SIZE 15
 #define PRO_SCORING_MATRIX_SIZE 24

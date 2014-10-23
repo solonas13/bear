@@ -1,5 +1,5 @@
 /**
-    BEAR: BEst-Aigned Rotations
+    BEAR
     Copyright (C) 2014 Solon P. Pissis. 
 
     This program is free software: you can redistribute it and/or modify
@@ -36,6 +36,8 @@
 #include "EBLOSUM62.h"
 #include "globals.h"
 
+#define OPT_LEN_FRA 20
+
 using namespace std;
 
 /* Definition of global variables defined in globals.h */
@@ -54,6 +56,7 @@ double gettime( void )
 unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw, TPOcc *** POcc, unsigned int ** NOcc )
 {
 
+	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
 	unsigned int d = 0;			//this is the number of patterns in the set.
 	unsigned int i = 0;
 	unsigned char ** Tmp;
@@ -102,13 +105,15 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		memmove ( &xx[i][0], x[i], m[i] );
 		memmove ( &xx[i][m[i]], x[i], m[i] - 1 );
 		xx[i][mm] = '\0';
+		if ( ( int ) ( mm / f ) >= OPT_LEN_FRA )
+			f = ( int ) ( mm / OPT_LEN_FRA );
+		else
+			f = 2 * sw . k + 4;	
 	}
 
 	int * ind;			//this is the starting position of the fragment
 	int * mf;			//this is the length of the fragment
 	int * whe;			//this is which pattern the fragment is extracted from
-
-	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
 
 	ind = ( int * ) calloc ( f * d, sizeof ( int ) );
 	mf = ( int * ) calloc ( f * d, sizeof ( int ) );
@@ -125,6 +130,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 	}
 
 	/* Check whether there exist duplicated fragments */
+	fprintf ( stderr, " Checking whether there exist any duplicates fragments in the patterns\n" );
 	char ** seqs;
 	int   * dups;		
         dups  = ( int * ) calloc ( f * d, sizeof ( int ) );
@@ -209,6 +215,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
         gP  = P;
 
 	/* Aho Corasick Automaton */
+	fprintf ( stderr, " Building up the AC automaton\n" );
 	filtering ( ( char * ) t, n, ( char ** ) seqs, f * d );
 
 	F = gF;
@@ -246,9 +253,10 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		for ( int j = 0; j < mm; j++ )
 			xxr[i][j] = xx[i][mm - j - 1];
 		xxr[i][mm] = '\0';
-		xx[i][mm] = '\0';
 	}
 
+
+	fprintf ( stderr, " Matching starts\n" );
 	for ( int i = 0; i < matches; i++ )
 	{
 		int jj = F[i];		// this is the ID of fragment.
@@ -474,6 +482,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 
 unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw, TPOcc *** POcc, unsigned int ** NOcc )
 {
+	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
 	unsigned int d = 0;			//this is the number of patterns in the set.
 	unsigned int i = 0;
 	unsigned char ** Tmp;
@@ -522,13 +531,16 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		memmove ( &xx[i][0], x[i], m[i] );
 		memmove ( &xx[i][m[i]], x[i], m[i] - 1 );
 		xx[i][mm] = '\0';
+
+		if ( ( int ) ( mm / f ) >= OPT_LEN_FRA )
+			f = ( int ) ( mm / OPT_LEN_FRA );
+		else
+			f = 2 * sw . k + 4;	
 	}
 
 	int * ind;			//this is the starting position of the fragment
 	int * mf;			//this is the length of the fragment
 	int * whe;			//this is which pattern the fragment is extracted from
-
-	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
 
 	ind = ( int * ) calloc ( f * d, sizeof ( int ) );
 	mf = ( int * ) calloc ( f * d, sizeof ( int ) );
@@ -545,6 +557,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 	}
 
 	/* Check whether there exist duplicated fragments */
+	fprintf ( stderr, " Checking whether there exist any duplicates fragments in the patterns\n" );
 	char ** seqs;
 	int   * dups;		
         dups  = ( int * ) calloc ( f * d, sizeof ( int ) );
@@ -629,6 +642,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
         gP  = P;
 
 	/* Aho Corasick Automaton */
+	fprintf ( stderr, " Building up the AC automaton\n" );
 	filtering ( ( char * ) t, n, ( char ** ) seqs, f * d );
 
         F  = gF;
@@ -666,9 +680,9 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		for ( int j = 0; j < mm; j++ )
 			xxr[i][j] = xx[i][mm - j - 1];
 		xxr[i][mm] = '\0';
-		xx[i][mm] = '\0';
 	}
 
+	fprintf ( stderr, " Matching starts\n" );
 	for ( int i = 0; i < matches; i++ )
 	{
 		int jj = F[i];		// this is the ID of fragment.
