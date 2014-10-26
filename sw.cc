@@ -91,8 +91,7 @@ unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, uns
             		double u = D[i][j];
             		I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
             		double v = I[i][j];
-
-            		matching_score = nuc_delta( t[j - 1], p[i - 1] );
+                        matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
             		if ( matching_score == ERR )
             		{
 				return 0;
