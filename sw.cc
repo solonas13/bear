@@ -1,5 +1,5 @@
 /**
-    BEAR: BEst-Aigned Rotations
+    BEAR
     Copyright (C) 2014 Solon P. Pissis. 
 
     This program is free software: you can redistribute it and/or modify
@@ -91,39 +91,12 @@ unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, uns
             		double u = D[i][j];
             		I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
             		double v = I[i][j];
-                        matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
+            		matching_score = nuc_delta( t[j - 1], p[i - 1] );
             		if ( matching_score == ERR )
-            		{
 				return 0;
-            		}
 	            	double w = T[i - 1][j - 1] + matching_score;
 
-            		if( u <= 0 && v <= 0 && w <= 0 )
-            		{
-                		T[i][j] = 0;
-            		}
-            		else if ( u > w )
-            		{
-                		if( v > u )
-                		{
-                    			T[i][j] = v;
-                		}
-                		else
-                		{
-                    			T[i][j] = u;
-                		}
-            		}
-            		else
-            		{
-                		if( v > w )
-                		{
-                    			T[i][j] = v;
-                		}
-				else
-				{
-					T[i][j] = w;
-				}
-            		}
+			T[i][j] = max ( 0, max ( w, max ( u, v ) ) );
 
 			if ( T[i][j] > max_score )
 			{
