@@ -781,7 +781,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 					mis = mis - M[j - 1] + M[j + m[w] - 1];
 				}
 
-				if ( mis < sw . k )
+				if ( mis <= sw . k )
 				{
 					int pos = ii - l + j;
 
