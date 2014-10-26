@@ -1,5 +1,5 @@
 /**
-    BEAR: BEst-Aigned Rotations
+    BER
     Copyright (C) 2014 Solon P. Pissis. 
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 #define DEL                     '$'
 #define DEL_STR                 "$"
 #define ERR                      24
-#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*UO"   //Proteins alphabet
+#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*U"   //Proteins alphabet
 #define DNA                     "ATGCSWRYKMBVHDN"            //IUPAC alphabet
 #define NUC_SCORING_MATRIX_SIZE 15
 #define PRO_SCORING_MATRIX_SIZE 24
@@ -72,6 +72,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch  s
 unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
 unsigned int nw_algorithm ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
 unsigned int nw_algorithm_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D, int ** H);
+unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y,  unsigned int n, struct TSwitch  sw, unsigned int * S );
 unsigned int r_errors_vec	( double ** D, unsigned int m, unsigned int n, struct TSwitch  sw, double * Sl );
 unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch  sw, double * Sr, int * Pr );

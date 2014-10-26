@@ -8,7 +8,7 @@ LFLAGS= -std=c++11 -O2 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libd
  
 EXE=    bear
  
-SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc
+SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc sw.cc
  
 HD=     beardefs.h globals.h filter.h aca.h EDNAFULL.h EBLOSUM62.h Makefile
  

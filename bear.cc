@@ -69,6 +69,7 @@ int main(int argc, char **argv)
                 }
 
 		d       = sw . d;
+
 		if ( d == 1 )
 		{
 			if ( sw . R <= 0 || sw . R >= 1 )
@@ -87,7 +88,8 @@ int main(int argc, char **argv)
 				return ( 1 );
 			}
 		}
-		if ( d == 2 || d == 3 )
+
+		if ( d == 2 )
 		{
 			if ( sw . w > WORD_LEN - 1 )
 			{
@@ -99,7 +101,13 @@ int main(int argc, char **argv)
 				fprintf ( stderr, " Error: The length of factor (-w) must be larger than 1!\n" );
 				return ( 1 );
 			}
-		}	
+		}
+
+		if ( d > 2 )	
+		{
+                	usage ();
+			return ( 1 );
+		}
 
                 patterns_filename       = sw . patterns_filename;
 		if ( patterns_filename == NULL )
@@ -128,6 +136,7 @@ int main(int argc, char **argv)
 			fprintf ( stderr, " Error: Outliers filename cannot be used with text filename!\n" );
 			return ( 1 );
 		}
+
 		omp_set_num_threads( sw . T );
         }
 
@@ -447,7 +456,7 @@ int main(int argc, char **argv)
 		int * R;
 		R = ( int * ) calloc ( num_seqs , sizeof ( int ) );
 
-		if ( d == 0 || d == 1  ) 
+		if ( d == 0  ) 
 		{
 			fprintf ( stderr, " Starting the LDS method\n" );
 			/* Create the text */
@@ -490,6 +499,8 @@ int main(int argc, char **argv)
 					exit(EXIT_FAILURE);
 				}
 			}
+
+			#if 0
 			if ( d == 1 )
 			{
 				/* Estimate the minimum pairwise allowed similarity */
@@ -508,6 +519,7 @@ int main(int argc, char **argv)
 					exit(EXIT_FAILURE);
 				}
 			}
+			#endif
 
 			D = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) );
 			if( ( D == NULL) )
@@ -570,7 +582,7 @@ int main(int argc, char **argv)
 			free ( POcc );
 		}
 
-		if ( d == 2 || d == 3 )
+		if ( d == 1 )
 		{	
 			fprintf ( stderr, " Starting the MDS method\n" );
 			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
@@ -579,19 +591,22 @@ int main(int argc, char **argv)
 				exit( EXIT_FAILURE );
 			}
 
+			/* Estimate the minimum pairwise allowed similarity */
+			double total_score = 0;
+			for ( i = 0; i < num_seqs; i ++ )
+			{
+				unsigned int l = strlen ( ( char * ) seq[i] );
+				for ( int j = 0; j < l; j++ )
+					total_score += ( sw . matrix ? pro_delta( seq[i][j], seq[i][j] ) : nuc_delta( seq[i][j], seq[i][j] ) ) ;
+			}
+			sw . min_sim = ( total_score * sw . R ) / ( num_seqs );
+			fprintf( stderr, " The minimum allowed similarity score is %lf.\n", sw . min_sim );
+
 			/* For every sequence i */
 			#pragma omp parallel for
 			for ( int i = 0; i < num_seqs; i++ )
 			{
-				/* Create a sequence of length mm with all factors of length sw . w of the rotations of seq[i] */
 				unsigned int m = strlen ( ( char * ) seq[i] );
-				unsigned char * xiw;
-				xiw = ( unsigned char * ) calloc (  m + sw . w, sizeof( unsigned char ) );
-				memmove( &xiw[0], seq[i], m );
-				memmove( &xiw[m], seq[i], sw . w - 1 );
-				xiw[m + sw . w - 1] = '\0';
-				unsigned int mm = m + sw . w - 1;
-
 				if ( ( D[i] = ( TPOcc * ) calloc ( ( num_seqs ) , sizeof( TPOcc ) ) ) == NULL )
 				{
 					fprintf( stderr, " Error: Cannot allocate memory!\n" );
@@ -605,16 +620,91 @@ int main(int argc, char **argv)
 					TPOcc * M;
 
 					/* Each row M[ii] stores the coordinates M . rot of the best match of length sw . w with every other sequence ii */
-					if ( ( M = ( TPOcc * ) calloc ( ( mm ) , sizeof( TPOcc ) ) ) == NULL )
+					if ( ( M = ( TPOcc * ) calloc ( ( m ) , sizeof( TPOcc ) ) ) == NULL )
 					{
 						fprintf( stderr, " Error: M could not be allocated!\n");
 						exit ( 1 );
 					}
 
+					/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
+					unsigned int n = strlen ( ( char * ) seq[ii] );
+					unsigned char * xjw;
+					xjw = ( unsigned char * ) calloc (  n + n, sizeof( unsigned char ) );
+					memmove( &xjw[0], seq[ii], n );
+					memmove( &xjw[n], seq[ii], n - 1 );
+					xjw[n + n - 1] = '\0';
+					unsigned int nn = n + n - 1;
+
 					/* Initialise the arrays */
 					for ( int jj = 0; jj < num_seqs; jj++ )
-						M[jj] . err = m - 1;
-					D[i][ii] . err = m  - 1;
+						M[jj] . err = -DBL_MAX;
+					D[i][ii] . err = -DBL_MAX;
+
+					bcf_sw ( seq[i], m, xjw, nn, sw, M );
+
+					double max_sim = -DBL_MAX;
+
+					for ( int jj = 0; jj < m; jj ++ )
+					{
+						if ( max_sim < M[jj] . err )
+						{
+							int iii = jj % m;
+							int jjj = M[jj] . rot % n;
+
+							max_sim = M[jj] . err;
+							D[i][ii] . err = M[jj] . err;
+
+							if ( iii >= jjj )
+							{
+								D[i][ii] . rot = iii - jjj;
+							}
+							else
+							{
+								int a = jjj - iii;
+								int b = m - iii - 1;
+								int c = min ( a, b );
+								D[i][ii] . rot = m - c;		
+							}
+						}
+					}
+					free ( xjw );
+					free ( M );
+				}
+			}	
+		}
+
+		if ( d == 2 )
+		{	
+			fprintf ( stderr, " Starting the MDS method\n" );
+			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+
+			/* For every sequence i */
+			#pragma omp parallel for
+			for ( int i = 0; i < num_seqs; i++ )
+			{
+				unsigned int m = strlen ( ( char * ) seq[i] );
+				if ( ( D[i] = ( TPOcc * ) calloc ( ( num_seqs ) , sizeof( TPOcc ) ) ) == NULL )
+				{
+					fprintf( stderr, " Error: Cannot allocate memory!\n" );
+					exit( EXIT_FAILURE );
+				}
+
+				for ( int ii = 0; ii < num_seqs; ii ++ )
+				{
+					if ( i == ii ) continue;
+
+					TPOcc * M;
+
+					/* Each row M[ii] stores the coordinates M . rot of the best match of length sw . w with every other sequence ii */
+					if ( ( M = ( TPOcc * ) calloc ( ( m ) , sizeof( TPOcc ) ) ) == NULL )
+					{
+						fprintf( stderr, " Error: M could not be allocated!\n");
+						exit ( 1 );
+					}
 
 					/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
 					unsigned int n = strlen ( ( char * ) seq[ii] );
@@ -625,34 +715,44 @@ int main(int argc, char **argv)
 					xjw[n + sw . w - 1] = '\0';
 					unsigned int nn = n + sw . w - 1;
 
-					if ( d == 2 )
-						bcf_maxshift_hd_ls ( xiw, mm, xjw, nn, sw, M );
-					else
-						bcf_maxshift_ed_ls ( xiw, mm, xjw, nn, sw, M );
+					/* Initialise the arrays */
+					for ( int jj = 0; jj < num_seqs; jj++ )
+						M[jj] . err = m - 1;
+					D[i][ii] . err = m  - 1;
 
-					free ( xjw );
+					if ( d == 2 )
+						bcf_maxshift_hd_ls ( seq[i], m, xjw, nn, sw, M );
+					if ( d == 3 )
+						bcf_maxshift_ed_ls ( seq[i], m, xjw, nn, sw, M );
 
 					unsigned int min_dist = m - 1;
 
-					/* Here we add the total score among ALL sequences */
-					for ( int jj = sw . w - 1; jj < mm; jj ++ )
+					for ( int jj = sw . w - 1; jj < m; jj ++ )
 					{
 						if ( min_dist > M[jj] . err )
 						{
+							int iii = jj % m;
+							int jjj = M[jj] . rot % n;
+
 							min_dist = M[jj] . err;
 							D[i][ii] . err = M[jj] . err;
 
-							if ( jj >= M[jj] . rot )
-								D[i][ii] . rot = jj - M[jj] . rot;
+							if ( iii >= jjj )
+							{
+								D[i][ii] . rot = iii - jjj;
+							}
 							else
-								D[i][ii] . rot = jj + m - M[jj] . rot;		
+							{
+								int a = jjj - iii;
+								int b = m - iii - 1;
+								int c = min ( a, b );
+								D[i][ii] . rot = m - c;		
+							}
 						}
 					}
+					free ( xjw );
 					free ( M );
 				}
-
-				free ( xiw );
-				
 			}	
 		}
 
@@ -662,6 +762,16 @@ int main(int argc, char **argv)
 			for ( int j = 0; j < num_seqs; j ++ )
 			{
 				fprintf( stderr, "%lf ", D[i][j] . err );
+			}
+			fprintf( stderr, "\n"  );
+		}
+		#endif
+		#if 0
+		for ( int i = 0; i < num_seqs; i ++ )
+		{
+			for ( int j = 0; j < num_seqs; j ++ )
+			{
+				fprintf( stderr, "%d ", D[i][j] . rot );
 			}
 			fprintf( stderr, "\n"  );
 		}
