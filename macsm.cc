@@ -1106,28 +1106,7 @@ unsigned int nw_algorithm ( unsigned char * p, unsigned int m, unsigned char * t
                                 return 0;
 			double w = T[i - 1][j - 1] + matching_score;
 
-			if( u > w )
-			{
-				if( v > u )
-				{
-					T[i][j] = v;
-				}
-				else
-				{
-					T[i][j] = u;
-				}
-			}
-			else
-			{
-				if( v > w )
-				{
-					T[i][j] = v;
-				}
-				else
-				{
-					T[i][j] = w;
-				}
-			}
+			T[i][j] = max ( w, max ( u, v ) );
 		}
 	}
 	for ( j = 0; j < m + 1; j ++ )
