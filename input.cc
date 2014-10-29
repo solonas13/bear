@@ -68,7 +68,7 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> w                              = 45;
    sw -> O                              = -10.0;
    sw -> E                              = -1.0;
-   sw -> R                              = 0.5;
+   sw -> R                              = 0.25;
    sw -> d                              = 0;
    args = 0;
 
@@ -222,7 +222,7 @@ void usage ( void )
    fprintf ( stdout, "  -O, --opn-gap             <dbl>     Affine gap open penalty (default: -10.0).\n" );
    fprintf ( stdout, "  -E, --ext-gap             <dbl>     Affine gap extension penalty (default: -1.0).\n" );
    fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score\n"
-                     "                                      based on the sub matrix used (default: 0.5).\n" );
+                     "                                      based on the sub matrix used (default: 0.25).\n" );
    fprintf ( stdout, "  -l, --outliers-file       <str>     Outliers filename --- outputs a file with\n"
                      "                                      the sequences which were not rotated. \n" );
    fprintf ( stdout, " Miscellaneous:\n" );
