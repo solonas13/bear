@@ -640,7 +640,7 @@ int main(int argc, char **argv)
 						M[jj] . err = -DBL_MAX;
 					D[i][ii] . err = -DBL_MAX;
 
-					bcf_sw ( seq[i], m, xjw, nn, sw, M );
+					bcf_sw_ls ( seq[i], m, xjw, nn, sw, M );
 
 					double max_sim = -DBL_MAX;
 

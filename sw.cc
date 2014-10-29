@@ -28,7 +28,7 @@
 #define min(a,b) ((a) < (b)) ? (a) : (b)
 
 /*
-the Smith-Waterman algorithm
+The Smith-Waterman algorithm with affine penalty scores
 */
 unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
 {
@@ -117,6 +117,121 @@ unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, uns
 	free ( I );
 	free ( D );
 	free ( T );
+
+        return  ( 1 );
+}
+
+/*
+The Smith-Waterman algorithm with affine penalty scores in linear space
+*/
+unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
+{
+
+ 	int i;
+    	int j;
+        double * d0;
+        double * d1;
+        double * t0;
+        double * t1;
+        double * in;
+    	double g = sw . O;
+    	double h = sw . E;
+    	double matching_score = 0;
+        
+        if ( ( d0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+        {
+            fprintf( stderr, " Error: 'd0' could not be allocated!\n");
+            return ( 0 );
+        }
+        if ( ( d1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL  )
+        {
+            fprintf( stderr, " Error: 'd1' could not be allocated!\n");
+            return ( 0 );
+        }
+        if ( ( t0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+        {
+            fprintf( stderr, " Error: 't0' could not be allocated!\n");
+            return ( 0 );
+        }
+        if ( ( t1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+        {
+            fprintf( stderr, " Error: 't1' could not be allocated!\n");
+            return ( 0 );
+        }
+        if ( ( in = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+        {
+            fprintf( stderr, " Error: 'in' could not be allocated!\n");
+            return ( 0 );
+        }
+        
+    	for( i = 1; i < m + 1; i++ )
+    	{
+                double max_score = 0;
+        	for( j = 1; j < n + 1; j++ )
+        	{
+                    double u, v, w;
+                    
+                    switch ( i % 2 ) {
+                        
+                        case 0:
+                    
+                            d0[j] = max ( d1[j] + h, t1[j] + g );
+                            u = d0[j];
+                            
+                            in[j] = max ( in[j - 1] + h, t0[j - 1] + g ); //i0
+                            v = in[j];
+                            
+                            matching_score = nuc_delta( t[j - 1], p[i - 1] );
+                            if ( matching_score == ERR )
+                                    return 0;
+                            w = t1[j - 1] + matching_score;
+
+                            t0[j] = max ( 0, max ( w, max ( u, v ) ) );
+                            
+                            if ( t0[j] > max_score )
+                            {
+                                    max_score = t0[j];
+                                    M[i - 1] . err  = max_score;
+                                    M[i - 1] . rot = j - 1;
+                                    
+                            }
+                            
+                            break;
+                        
+                        case 1:
+                            
+                            d1[j] = max ( d0[j] + h, t0[j] + g );
+                            u = d1[j];
+                            
+                            in[j] = max ( in[j - 1] + h, t1[j - 1] + g ); //i1
+                            v = in[j];
+                            
+                            matching_score = nuc_delta( t[j - 1], p[i - 1] );
+                            if ( matching_score == ERR )
+                                    return 0;
+                            w = t0[j - 1] + matching_score;
+
+                            t1[j] = max ( 0, max ( w, max ( u, v ) ) );
+                            
+                            if ( t1[j] > max_score )
+                            {
+                                    max_score = t1[j];
+                                    M[i - 1] . err  = max_score;
+                                    M[i - 1] . rot = j - 1;
+                                    
+                            }                   
+                            
+                            break;
+                            
+                    }
+        	}
+    	}
+        
+        free( d0 );
+        free( d1 );
+        free( t0 );
+        free( t1 );
+        free( in );
 
         return  ( 1 );
 }

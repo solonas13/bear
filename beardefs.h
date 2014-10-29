@@ -73,6 +73,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch  s
 unsigned int nw_algorithm ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
 unsigned int nw_algorithm_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D, int ** H);
 unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
+unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y,  unsigned int n, struct TSwitch  sw, unsigned int * S );
 unsigned int r_errors_vec	( double ** D, unsigned int m, unsigned int n, struct TSwitch  sw, double * Sl );
 unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch  sw, double * Sr, int * Pr );
