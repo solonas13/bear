@@ -32,8 +32,11 @@ static struct option long_options[] =
    { "output-file",             required_argument, NULL, 'o' },
    { "outliers-file",           required_argument, NULL, 'l' },
    { "max-dist",                required_argument, NULL, 'k' },
+<<<<<<< HEAD
    { "cmp-mod",                 required_argument, NULL, 'd' },
    { "max-gap",                 required_argument, NULL, 'g' },
+=======
+>>>>>>> 54df19fc9130a3b60e5d0bee8053ec8b7fb7ec23
    { "fac-len",                 required_argument, NULL, 'w' },
    { "sim-rat",                 required_argument, NULL, 'R' },
    { "opn-gap",                 required_argument, NULL, 'O' },
@@ -63,7 +66,6 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> output_filename                = NULL;
    sw -> rotations_filename             = NULL;
    sw -> outliers_filename              = NULL;
-   sw -> gaps                           = 2;
    sw -> T                              = 1;
    sw -> k                              = 0;
    sw -> w                              = 45;
@@ -73,7 +75,7 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> d                              = 0;
    args = 0;
 
-   while ( ( opt = getopt_long ( argc, argv, "a:p:t:o:k:T:g:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
+   while ( ( opt = getopt_long ( argc, argv, "a:p:t:o:k:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
     {
       switch ( opt )
        {
@@ -113,15 +115,6 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
             }
            sw -> d = val;
            args ++;
-           break;
-
-         case 'g':
-           val = strtol ( optarg, &ep, 10 );
-           if ( optarg == ep )
-            {
-              return ( 0 );
-            }
-           sw -> gaps = val;
            break;
 
          case 'w':
@@ -218,8 +211,6 @@ void usage ( void )
    fprintf ( stdout, "  -w, --fac-len             <int>     Maximum length of factor to be searched with\n"
                      "                                      option `-d 2' (default: 45). \n" );
    fprintf ( stdout, "  -T, --num-threads         <int>     Number of threads to be used (default: 1).\n" );
-   fprintf ( stdout, "  -g, --max-gap             <int>     Maximum total length of gaps between pairs\n"
-                     "                                      of sequences (default: 2). \n" );
    fprintf ( stdout, "  -O, --opn-gap             <dbl>     Affine gap open penalty (default: -10.0).\n" );
    fprintf ( stdout, "  -E, --ext-gap             <dbl>     Affine gap extension penalty (default: -1.0).\n" );
    fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score\n"
