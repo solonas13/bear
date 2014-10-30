@@ -91,7 +91,7 @@ unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, uns
             		double u = D[i][j];
             		I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
             		double v = I[i][j];
-            		matching_score = nuc_delta( t[j - 1], p[i - 1] );
+            		matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
             		if ( matching_score == ERR )
 				return 0;
 	            	double w = T[i - 1][j - 1] + matching_score;
@@ -181,7 +181,7 @@ unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, 
                             in[j] = max ( in[j - 1] + h, t0[j - 1] + g ); //i0
                             v = in[j];
                             
-                            matching_score = nuc_delta( t[j - 1], p[i - 1] );
+            		    matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
                             if ( matching_score == ERR )
                                     return 0;
                             w = t1[j - 1] + matching_score;
@@ -206,7 +206,7 @@ unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, 
                             in[j] = max ( in[j - 1] + h, t1[j - 1] + g ); //i1
                             v = in[j];
                             
-                            matching_score = nuc_delta( t[j - 1], p[i - 1] );
+            		    matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
                             if ( matching_score == ERR )
                                     return 0;
                             w = t0[j - 1] + matching_score;
