@@ -32,6 +32,7 @@ static struct option long_options[] =
    { "output-file",             required_argument, NULL, 'o' },
    { "outliers-file",           required_argument, NULL, 'l' },
    { "max-dist",                required_argument, NULL, 'k' },
+   { "cmp-mod",                 required_argument, NULL, 'd' },
    { "max-gap",                 required_argument, NULL, 'g' },
    { "fac-len",                 required_argument, NULL, 'w' },
    { "sim-rat",                 required_argument, NULL, 'R' },
