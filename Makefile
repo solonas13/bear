@@ -33,3 +33,6 @@ $(OBJ): $(MF) $(HD)
  
 clean: 
 	rm -f $(OBJ) $(EXE) *~
+	rm -r ahocorasick
+	rm -r libdatrie
+	rm -r libdatrie-0.2.8 

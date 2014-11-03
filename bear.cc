@@ -796,16 +796,8 @@ int main(int argc, char **argv)
 			return ( 1 );
 		}
 
-		if ( outliers_filename != NULL )
-		{
-			if ( ! ( outl_fd = fopen ( outliers_filename, "w") ) )
-			{
-				fprintf ( stderr, " Error: Cannot open file %s!\n", outliers_filename );
-				return ( 1 );
-			}
-		}
-
 		unsigned int succ = 0;
+		unsigned int unsucc = 0;
 		for ( i = 0; i < num_seqs; i ++ )
 		{
 			if ( R[i] >= 0 )
@@ -823,8 +815,17 @@ int main(int argc, char **argv)
 			{
 				if ( outliers_filename != NULL )
 				{
+					if ( unsucc == 0 )
+					{
+						if ( ! ( outl_fd = fopen ( outliers_filename, "w") ) )
+						{
+							fprintf ( stderr, " Error: Cannot open file %s!\n", outliers_filename );
+							return ( 1 );
+						}
+					}	
 					fprintf( outl_fd, ">%s\n", ( char * ) seq_id[i] );
 					fprintf( outl_fd, "%s\n", ( char * ) seq[i] );	
+					unsucc++;
 				}
 			}
 				
@@ -838,7 +839,7 @@ int main(int argc, char **argv)
 			return ( 1 );
 		}
 
-		if ( outliers_filename != NULL )
+		if ( outliers_filename != NULL && unsucc > 0 )
 		{
 			if ( fclose ( outl_fd ) )
 			{
