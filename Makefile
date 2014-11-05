@@ -4,7 +4,7 @@ CC=     g++
  
 CFLAGS= -g -fopenmp -D_USE_OMP -D_USE_MPFR -msse4.2 -O3 -fomit-frame-pointer -funroll-loops  
  
-LFLAGS= -std=c++11 -O2 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libdatrie/include -L ./libdatrie/lib -ldatrie -Wl,-rpath=$(PWD)/libdatrie/lib -lz 
+LFLAGS= -std=c++11 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libdatrie/include -L ./libdatrie/lib -ldatrie -Wl,-rpath=$(PWD)/libdatrie/lib -lz 
  
 EXE=    bear
  

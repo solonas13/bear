@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-#define ALLOC_SIZE               512
+#define ALLOC_SIZE               10000
 #define DEL                     '$'
 #define DEL_STR                 "$"
 #define ERR                      24

@@ -560,9 +560,10 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 	fprintf ( stderr, " Checking whether there exist any duplicates fragments in the patterns\n" );
 	char ** seqs;
 	int   * dups;		
+
         dups  = ( int * ) calloc ( f * d, sizeof ( int ) );
-	unsigned int uniq;
-	uniq = extract_dups ( xx, d, m, f, mf, ind, dups );
+	//unsigned int uniq;
+	//uniq = extract_dups ( xx, d, m, f, mf, ind, dups );
 
 	int   	* d_occ;	// d_occ[i] stores the id of the next fragment that is equal to itself a la linked-list manner
 	int   	* l_occ;
@@ -574,6 +575,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		l_occ[i] = -1;
 	}
 
+        #if 0
 	/* In case there exist duplicated fragmnents */
 	if ( uniq < f * d )
 	{
@@ -607,6 +609,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 	}
 	else //add all the fragments since there exist no duplicated fragment
 	{
+	#endif
                 seqs = ( char ** ) calloc ( f * d, sizeof ( char * ) );
 		for( int i = 0; i < d; ++i )
         	{
@@ -618,7 +621,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
                 		seqs[f_id][mf[f_id]] = '\0';
 			}
         	}
-	}
+	//}
 
 	int * F = NULL;
 	F = ( int * ) realloc ( F,  ( ALLOC_SIZE ) * sizeof ( int ) );
