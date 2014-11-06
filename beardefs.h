@@ -78,7 +78,6 @@ unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char
 unsigned int r_errors_vec	( double ** D, unsigned int m, unsigned int n, struct TSwitch  sw, double * Sl );
 unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch  sw, double * Sr, int * Pr );
 unsigned int upgma_dist ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R );
-unsigned int upgma_dist2 ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R );
 unsigned int upgma_sim ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R );
 unsigned int maxshift_hd ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int maxshift_ed ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
