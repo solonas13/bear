@@ -22,7 +22,6 @@
 #include <string.h>
 #include <getopt.h>
 #include <assert.h>
-#include <sys/time.h>
 #include <float.h>
 #include <limits.h>
 #include <vector>
@@ -32,11 +31,11 @@
 #include "beardefs.h"
 #include "filter.h"
 #include "aca.h"
-#include "EDNAFULL.h"
-#include "EBLOSUM62.h"
 #include "globals.h"
 
 #define OPT_LEN_FRA 20
+#define GAPS_PEN    1
+#define MIS_PEN     1
 
 using namespace std;
 
@@ -45,13 +44,6 @@ int * gF  = NULL;
 int * gP  = NULL;
 int gMatches = 0;
 int gMax_alloc_matches = ALLOC_SIZE;
-
-double gettime( void )
-{
-    struct timeval ttime;
-    gettimeofday( &ttime , 0 );
-    return ttime.tv_sec + ttime.tv_usec * 0.000001;
-}
 
 unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw, TPOcc *** POcc, unsigned int ** NOcc )
 {
@@ -278,23 +270,23 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			int pxxr = mm - ind[jj];
 			int ptr = iir + mf[jj];
 
-			double * Sr;
-			double * Sl;
-			double * Slr;
+			int * Sr;
+			int * Sl;
+			int * Slr;
 			int * Pl;
 			int * Plr;
 			
 			/* the right part*/
 			if ( r > 0 )
 			{
-				Sr = ( double * ) calloc ( r,  sizeof ( double ) );
+				Sr = ( int * ) calloc ( r,  sizeof ( int ) );
 
-				double ** D;
-				D = ( double ** ) calloc ( r + 1,  sizeof ( double * ) );
+				unsigned int ** D;
+				D = ( unsigned int ** ) calloc ( r + 1,  sizeof ( unsigned int * ) );
 				for ( int j = 0; j < r + 1; j ++ )
-					D[j] = ( double * ) calloc ( exr + 1,  sizeof ( double ) );
+					D[j] = ( unsigned int * ) calloc ( exr + 1,  sizeof ( unsigned int ) );
 
-				nw_algorithm ( &xx[w][pxx], r, &t[pt], exr, sw, D );
+				edit_distance ( &xx[w][pxx], r, &t[pt], exr, sw, D );
 				r_errors_vec	  ( D, r, exr, sw, Sr );
 
 				for ( int j = 0; j < r + 1; j ++ )
@@ -307,23 +299,23 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			/* the left part */
 			if ( l > 0 )
 			{
-				Sl = ( double * ) calloc ( l,  sizeof ( double ) );
+				Sl = ( int * ) calloc ( l,  sizeof ( int ) );
 				Pl = ( int * ) calloc ( l,  sizeof ( int ) );
-				Slr = ( double* ) calloc ( l,  sizeof ( double ) );
+				Slr = ( int * ) calloc ( l,  sizeof ( int ) );
 				Plr = ( int * ) calloc ( l,  sizeof ( int ) );
 
-				double ** D;
+				unsigned int ** D;
 				int ** H;
 
-				D = ( double ** ) calloc ( l + 1,  sizeof ( double * ) );
+				D = ( unsigned int ** ) calloc ( l + 1,  sizeof ( unsigned int * ) );
 				for ( int j = 0; j < l + 1; j ++ )
-					D[j] = ( double * ) calloc ( exl + 1,  sizeof ( double ) );
+					D[j] = ( unsigned int * ) calloc ( exl + 1,  sizeof ( unsigned int ) );
 
 				H = ( int ** ) calloc ( l + 1,  sizeof ( int * ) );
 				for ( int j = 0; j < l + 1; j ++ )
 					H[j] = ( int * ) calloc ( exl + 1,  sizeof ( int ) );
 
-				nw_algorithm_wbt ( &xxr[w][pxxr], l, &tr[ptr], exl, sw, D, H );
+				edit_distance_wbt ( &xxr[w][pxxr], l, &tr[ptr], exl, sw, D, H );
 				l_errors_vec	  ( D, l, exl, H, sw, Slr, Plr );
 
 				for ( int j = 0; j < l; j ++ )
@@ -340,7 +332,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 				free ( H );
 			}
 
-			double * M = ( double * ) calloc ( mm, sizeof ( double ) );
+			int * M = ( int * ) calloc ( mm, sizeof ( int ) );
 			unsigned int a = 0;
 			unsigned int b = 0;
 
@@ -352,20 +344,14 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 					M[j] = Sr[b++];
 			}		
 
-			//double min_sim = ( double ) m[w] * MIN_SIM * MATCH;
-
-			double frag_score = 0;
-			for ( int j = 0; j < mf[jj]; j++ )
-				frag_score += nuc_delta ( t[ii + j], t[ii + j] );
-
                         int left  = max ( 0, ( int ) ( ind[jj] + mf[jj] - m[w] )  );	//leftmost rotation j
                         int right = min ( ind[jj], m[w] - 1 );				//rightmost rotation j
 
 			for ( int j = left; j <= right; j++ )
 			{
-				double score = 0;
-				double led = 0;
-				double red = 0;
+				int dist = 0;
+				int led = 0;
+				int red = 0;
 				int pl = 0;
 
                                 if ( j < ind[jj] )
@@ -379,9 +365,9 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
                                         red = M[j + m[w] - 1];
 				}
 
-				score = led + frag_score + red;
+				dist = led + 0 + red;
 
-				if ( score >= sw . min_sim )
+				if ( dist <= sw . k )
 				{
 					int txt_chars = l + pl;
 					int pos = ii - txt_chars + j;
@@ -391,8 +377,9 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 						( * POcc ) [w] = ( TPOcc * ) realloc ( ( * POcc )[w],   ( MOcc[w] + ALLOC_SIZE ) * sizeof ( TPOcc ) );
 						MOcc[w] += ALLOC_SIZE;
 					}
+
 					( *POcc )[w][ ( * NOcc )[w] ] . pos = pos;	//text index
-					( *POcc )[w][ ( * NOcc )[w] ] . err = score;	
+					( *POcc )[w][ ( * NOcc )[w] ] . err = dist;	
 					( *POcc )[w][ ( * NOcc )[w] ] . rot = j;	
 					( * NOcc )[w] = ( * NOcc )[w] + 1;
 				}
@@ -506,14 +493,10 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		return 0;
 	}
 
-	unsigned int M = 0;
 	for ( i = 0; i < d; i++ )
 	{
 		m[i] = strlen ( ( char * ) x[i] );		//this is the length of the pattern
-		M += m[i];
 	}
-
-	fprintf ( stderr, " Total length of sequences: %d\n", M );
 
 	unsigned char ** xx; 
 	xx = ( unsigned char ** ) malloc ( d * sizeof ( unsigned char * ) );
@@ -769,7 +752,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
                         int left  = max ( 0, ( int ) ( ind[jj] + mf[jj] - m[w] )  );
                         int right = min ( ind[jj], m[w] - 1 );
 
-                        int mis = 0;
+                        int dist = 0;
 
                         for ( int j = left; j <= right; j++ )
 			{
@@ -778,15 +761,15 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 				{
 					for ( int l = left; l < left + m[w]; l++ )
 					{
-						mis += M[l];
+						dist += M[l];
 					}
 				}
 				else
 				{
-					mis = mis - M[j - 1] + M[j + m[w] - 1];
+					dist = dist - M[j - 1] + M[j + m[w] - 1];
 				}
 
-				if ( mis <= sw . k )
+				if ( dist <= sw . k )
 				{
 					int pos = ii - l + j;
 
@@ -796,7 +779,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 						MOcc[w] += ALLOC_SIZE;
 					}
 					( *POcc )[w][ ( * NOcc )[w] ] . pos = pos;	//text index
-					( *POcc )[w][ ( * NOcc )[w] ] . err = mis;	
+					( *POcc )[w][ ( * NOcc )[w] ] . err = dist;	
 					( *POcc )[w][ ( * NOcc )[w] ] . rot = j;	
 					( * NOcc )[w] = ( * NOcc )[w] + 1;
 				}
@@ -882,141 +865,52 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 	return 1;
 }
 
-TPOcc * unique ( TPOcc * first, TPOcc * last )
-{
-  	if ( first == last ) return last;
-	
-  	TPOcc * result = first;
-  	while (  ( ++first != last ) )
-  	{
-    		if ( ! ( ( * result ) . pos == ( * first ) . pos && ( * result ) . err == ( * first ) . err && ( * result ) . rot == ( * first ) . rot ) )
-		{
-			++result;
-      			( * result ) . pos = ( * first ) . pos;
-      			( * result ) . err = ( * first ) . err;
-      			( * result ) . rot = ( * first ) . rot;
-		}
-  	}
-	++result;
-  	return ( result );
-}
-
-unsigned int create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation )
-{
-	unsigned int m = strlen ( ( char * ) x );
-	memmove ( &rotation[0], &x[offset], m - offset );
-	memmove ( &rotation[m - offset], &x[0], offset );
-	rotation[m] = '\0';
-	return 1;
-}
-
-int binSearch( int value, TPat * array, int num )
-{
-   int mid = (num - 1) / 2;
-   int index = -1;
-
-   if ( num > 0 )
-   {
-      if ( value < array[mid] . start )
-      {
-         index = binSearch(value, array, mid);
-      }
-      else if ( value == array[mid] . start )
-      {
-         index = mid;
-      }
-      else if (value > array[mid] . start )
-      {
-         index = binSearch(value, array + mid + 1, num - mid - 1);
-
-         if ( index >= 0 )
-         {
-            index += (mid + 1);
-         }
-      }
-   }
-
-   return index;
-}
-
-/* Hamming distance */
-unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw, unsigned int * S )
-{
-	for ( unsigned int i = 0; i < m; i++ )
-    	{
-		if ( i < n )
-		{
-			if ( x[i] != y[i] )
-      				S[i] = 1;
-			else
-				S[i] = 0;
-		}
-		else
-			S[i] = m - 1;	
-    	}
-	return ( 1 );
-}  
-
-unsigned int r_errors_vec	( double ** D, unsigned int m, unsigned int n, struct TSwitch sw, double * Sr )
+unsigned int r_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, struct TSwitch sw, int * Sr )
 {
 	int i, j;
 
-	/* We will process each row of the DP matrix*/
-	unsigned int i_max = min ( m, n + sw . gaps );
-
-//	for ( i = 1; i < m + 1; i ++ )
-	for( i = 1; i < i_max + 1; i++)
+	for ( i = 1; i < m + 1; i ++ )
 	{
 		/* We find the minimum value of row i */
-		double max = -DBL_MAX;
+		int min = m;
 		
-		//for ( j = 1; j < n + 1; j++ )
-		unsigned int j_min = max ( 1, ( int ) ( i - sw . gaps ));
-		unsigned int j_max = min ( n, ( int ) ( i + sw . gaps ));
-		//fprintf( stderr, "%d %d %d %d %d %d", sw . gaps, j_min, j_max, n, i, m ); getchar();	
-		for( j = j_min; j <= j_max; j++ )
+		for ( j = 1; j < n + 1; j++ )
 		{
-			if ( D[i][j] > max )
-				max = D[i][j];
+			if ( D[i][j] < min )
+				min = D[i][j];
 		}
-		//fprintf( stderr, "Ok!" ); getchar();	
 
 		/* We store the max value of row i */
-		Sr[i - 1] = max;
+		Sr[i - 1] = min;
 	}
 
 	return ( 1 );
 }
 
-unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch sw, double * Sl, int * Pl )
+unsigned int l_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch sw, int * Sl, int * Pl )
 {
 	int i, j, k;
 
-	unsigned int i_max = min ( m, n + sw . gaps );
+	unsigned int i_max = min ( m, n + sw . k );
 
 	/* We will process each row of the DP matrix*/
-//        for ( i = 1; i < m + 1; i ++ )
-	for( i = 1; i < i_max + 1; i++)
+        for ( i = 1; i < m + 1; i ++ )
 	{
 		/* We find the minimum value of row i */
-		double max = -DBL_MAX;
+		int min = m;
 		unsigned int jj = n;
 
-		unsigned int j_min = max ( 1, ( int ) ( i - sw . gaps ));
-		unsigned int j_max = min ( n, ( int ) ( i + sw . gaps ));
-		
-//	        for ( j = 1; j < n + 1; j++ )
-		for( j = j_min; j <= j_max; j++ )
+	        for ( j = 1; j < n + 1; j++ )
 		{
-			if ( D[i][j] > max )
+			if ( D[i][j] < min )
 			{
-				max = D[i][j];
+				min = D[i][j];
 				jj = j;
 			}
 		}
 
 		/* We store the max value of row i */
-		Sl[i - 1] = max;
+		Sl[i - 1] = min;
 
 		/* We count the number of gaps inserted IN THE TEXT ONLY for this value of the DP matrix: D[i,jj] */
 		k = i;
@@ -1051,329 +945,115 @@ unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** 
 	return ( 1 );
 }
 
-unsigned int nw_algorithm ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T )
+/* Edit distance */
+unsigned int edit_distance ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D )
 {
-	int i;
-	int j;
-        double **       D;
-        double **       I;
-	double g = sw . O;
-        double h = sw . E;
-	double matching_score = 0;
-	unsigned int j_max = min ( n, m + sw . gaps );
-
-	D = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
-	for ( int j = 0; j < m + 1; j ++ )
-		D[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
-	I = ( double ** ) calloc ( m + 1,  sizeof ( int * ) );
-	for ( int j = 0; j < m + 1; j ++ )
-		I[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
-
-        for ( i = 0; i < m + 1; i++ )
-	{	
-		D[i][0] = -DBL_MAX;
-		I[i][0] = -DBL_MAX;
-	}
-
-        for ( j = 1; j < n + 1; j++ )
-	{	
-		D[0][j] = -DBL_MAX;
-		I[0][j] = -DBL_MAX;
-	}
-
-	T[0][0] = 0; 
-
-	if ( m > 0 )
-		T[1][0] = g; 
-
-        for ( i = 2; i < m + 1; i++ )
-		T[i][0] = T[i - 1][0] + h;
-
-	if ( n > 0 )
-		T[0][1] = g;
-
-        for ( j = 2; j < n + 1; j++ )
-		T[0][j] = T[0][j - 1] + h;
-
-        for( j = 1; j < j_max + 1; j++)
-        {
-                unsigned int i_min = max ( 1, ( int ) ( j - sw . gaps ));
-                unsigned int i_max = min ( m, ( int ) ( j + sw . gaps ));
-                for( i = i_min; i <= i_max; i++ )
-                {
-
-			D[i][j] = max ( D[i - 1][j] + h, T[i - 1][j] + g );
-			double u = D[i][j];
-			I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
-			double v = I[i][j];
-			matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
-                        if ( matching_score == ERR )
-                                return 0;
-			double w = T[i - 1][j - 1] + matching_score;
-
-			T[i][j] = max ( w, max ( u, v ) );
-		}
-	}
-	for ( j = 0; j < m + 1; j ++ )
-	{
-		free ( D[j] );
-		free ( I[j] );
-	}
-	free ( D );
-	free ( I );
-
-	return ( 1 );
-}
-
-
-unsigned int nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T, int ** H )
-{
-
-	int i;
-	int j;
-        double **       D;
-        double **       I;
-	double g = sw . O;
-        double h = sw . E;
-	double matching_score = 0;
-	unsigned int j_max = min ( n, m + sw . gaps );
-
-	D = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
-	for ( int j = 0; j < m + 1; j ++ )
-		D[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
-	I = ( double ** ) calloc ( m + 1,  sizeof ( int * ) );
-	for ( int j = 0; j < m + 1; j ++ )
-		I[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
-
-        for ( i = 0; i < m + 1; i++ )
-	{	
-		D[i][0] = -DBL_MAX;
-		I[i][0] = -DBL_MAX;
-	}
-
-        for ( j = 0; j < n + 1; j++ )
-	{	
-		D[0][j] = -DBL_MAX;
-		I[0][j] = -DBL_MAX;
-	}
+	unsigned int i, j;
+	unsigned int sub = MIS_PEN;
+	unsigned int gap = GAPS_PEN;
 
 	for ( i = 1; i < m + 1; i++ )
     	{
+      		D[i][0] = i * gap;
+    	}
+	for ( j = 1; j < n + 1; j++ )
+    	{
+      		D[0][j] = j * gap;
+    	}
+
+	for ( j = 1; j < n + 1; j++ )
+    	{
+		for ( i = 1; i < m + 1; i++ )
+        	{
+          		if ( x[i - 1] == y[j - 1] )
+			{
+            			D[i][j] = D[i - 1][j - 1];      //a match
+			}
+          		else
+			{
+				if ( D[i-1][j-1] + sub <= D[i][j-1] + gap && D[i-1][j-1] + sub <= D[i-1][j] + gap )
+				{
+					D[i][j] = D[i-1][j-1] + sub;
+				}
+				else if ( D[i-1][j] + gap <= D[i][j-1] + gap && D[i-1][j] + gap <= D[i-1][j-1] + sub )
+				{
+					D[i][j] = D[i - 1][j] + gap;
+				}
+				else if ( D[i][j-1] + gap <= D[i - 1][j] + gap && D[i][j-1] + gap <= D[i - 1][j-1] + sub )
+				{
+					D[i][j] = D[i][j-1] + gap;
+				}
+			}
+        	}
+    	}
+	return ( 1 );
+}  
+
+/* Edit distance with backtracking */
+unsigned int edit_distance_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D, int ** H )
+{
+	unsigned int i, j;
+	unsigned int sub = MIS_PEN;
+	unsigned int gap = GAPS_PEN;
+
+	for ( i = 1; i < m + 1; i++ )
+    	{
+      		D[i][0] = i * gap;
       		H[i][0] = -1;
     	}
 	for ( j = 1; j < n + 1; j++ )
     	{
+      		D[0][j] = j * gap;
       		H[0][j] = 1;
     	}
 
-	T[0][0] = 0; 
-
-	if ( m > 0 )
-		T[1][0] = g; 
-
-        for ( i = 2; i < m + 1; i++ )
-		T[i][0] = T[i - 1][0] + h;
-
-	if ( n > 0 )
-		T[0][1] = g;
-
-        for ( j = 2; j < n + 1; j++ )
-		T[0][j] = T[0][j - 1] + h;
-
-        for( j = 1; j < j_max + 1; j++)
-        {
-                unsigned int i_min = max ( 1, ( int ) ( j - sw . gaps ));
-                unsigned int i_max = min ( m, ( int ) ( j + sw . gaps ));
-                for( i = i_min; i <= i_max; i++ )
-                {
-			D[i][j] = max ( ( double ) D[i - 1][j] + h, ( double ) T[i - 1][j] + g );
-			double u = D[i][j];
-			I[i][j] = max ( ( double ) I[i][j - 1] + h, ( double ) T[i][j - 1] + g );
-			double v = I[i][j];
-			matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
-                        if ( matching_score == ERR )
-                                return 0;
-			double w = T[i - 1][j - 1] + matching_score;
-
-			if( u > w )
+	for ( j = 1; j < n + 1; j++ )
+    	{
+		for ( i = 1; i < m + 1; i++ )
+        	{
+          		if ( x[i - 1] == y[j - 1] )
 			{
-				if( v > u )
-				{
-					T[i][j] = v;
-            				H[i][j] = -1; 		//an insertion
-				}
-				else
-				{
-					T[i][j] = u;
-            				H[i][j] = 1;   		//a deletion
-				}
+            			D[i][j] = D[i - 1][j - 1];      //a match
+            			H[i][j] = 0;       	     	
 			}
-			else
+          		else
 			{
-				if( v > w )
+		
+				if ( D[i-1][j-1] + sub <= D[i][j-1] + gap && D[i-1][j-1] + sub <= D[i-1][j] + gap )
 				{
-					T[i][j] = v;
-            				H[i][j] = -1; 		//an insertion
-				}
-				else
-				{
-					T[i][j] = w;
+					D[i][j] = D[i-1][j-1] + sub;
             				H[i][j] = 0;       	//a substitution
 				}
+				else if ( D[i-1][j] + gap <= D[i][j-1] + gap && D[i-1][j] + gap <= D[i-1][j-1] + sub )
+				{
+					D[i][j] = D[i - 1][j] + gap;
+            				H[i][j] = -1;   	//a deletion
+				}
+				else if ( D[i][j-1] + gap <= D[i - 1][j] + gap && D[i][j-1] + gap <= D[i - 1][j-1] + sub )
+				{
+					D[i][j] = D[i][j - 1] + gap;
+            				H[i][j] = 1; 		//an insertion
+				}
 			}
-		}
-	}
-
-	for ( j = 0; j < m + 1; j ++ )
-	{
-		free ( D[j] );
-		free ( I[j] );
-	}
-	free ( D );
-	free ( I );
-
+        	}
+    	}
 	return ( 1 );
-}
+}  
 
-/* Returns the score for matching character a and b based on EDNAFULL matrix */
-int nuc_delta ( char a, char b )
- {
-   unsigned int index_a = nuc_char_to_index ( a );
-   unsigned int index_b = nuc_char_to_index ( b );
-
-   if ( ( index_a < NUC_SCORING_MATRIX_SIZE ) && ( index_b < NUC_SCORING_MATRIX_SIZE ) )
-     return ( EDNAFULL_matrix[ index_a ][ index_b ] );
-   else //Error
-     return ( ERR );
- }
-
-/* Returns the index of char a in EDNAFULL matrix */
-unsigned int nuc_char_to_index ( char a )
- {
-   unsigned int index; 
-
-   switch ( a )
-    {
-      case 'A':
-        index = 0; break;
-
-      case 'T':
-        index = 1; break;
-
-      case 'G':
-        index = 2; break;
-
-      case 'C':
-        index = 3; break;
-
-      case 'S':
-        index = 4; break;
-
-      case 'W':
-        index = 5; break;
-
-      case 'R':
-        index = 6; break;
-
-      case 'Y':
-        index = 7; break;
-
-      case 'K':
-        index = 8; break;
-
-      case 'M':
-        index = 9; break;
-
-      case 'B':
-        index = 10; break;
-
-      case 'V':
-        index = 11; break;
-
-      case 'H':
-        index = 12; break;
-
-      case 'D':
-        index = 13; break;
-
-      case 'N':
-        index = 14; break;
-
-      default:
-        fprintf ( stderr, "Error: unrecognizable character in one of the nucleotide sequences!!!\n" );
-        index = ERR; break;
-    }
-   
-   return ( index );
- }
-
-/* Returns the index of char a in EBLOSUM62 matrix */
-unsigned int pro_char_to_index ( char a )
+/* Hamming distance */
+unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw, unsigned int * S )
 {
-	unsigned int index;
-	switch ( a )
-	{
-		case 'A':
-		index = 0; break;
-		case 'R':
-		index = 1; break;
-		case 'N':
-		index = 2; break;
-		case 'D':
-		index = 3; break;
-		case 'C':
-		index = 4; break;
-		case 'Q':
-		index = 5; break;
-		case 'E':
-		index = 6; break;
-		case 'G':
-		index = 7; break;
-		case 'H':
-		index = 8; break;
-		case 'I':
-		index = 9; break;
-		case 'L':
-		index = 10; break;
-		case 'K':
-		index = 11; break;
-		case 'M':
-		index = 12; break;
-		case 'F':
-		index = 13; break;
-		case 'P':
-		index = 14; break;
-		case 'S':
-		index = 15; break;
-		case 'T':
-		index = 16; break;
-		case 'W':
-		index = 17; break;
-		case 'Y':
-		index = 18; break;
-		case 'V':
-		index = 19; break;
-		case 'B':
-		index = 20; break;
-		case 'Z':
-		index = 21; break;
-		case 'X':
-		index = 22; break;
-		case '*':
-		index = 23; break;
-		default:
-		fprintf ( stderr, "Error: unrecognizable character in one of the protein sequences!!!\n" );
-		index = ERR; break;
-	}
-	return ( index );
-}
-/* Returns the score for matching character a and b based on EBLOSUM62 matrix */
-int pro_delta ( char a, char b )
-{
-	unsigned int index_a = pro_char_to_index( a );
-	unsigned int index_b = pro_char_to_index( b );
-	if ( ( index_a < PRO_SCORING_MATRIX_SIZE ) && ( index_b < PRO_SCORING_MATRIX_SIZE ) )
-		return ( EBLOSUM62_matrix[ index_a ][ index_b ] );
-	else //Error
-	return ( ERR );
-}
+	for ( unsigned int i = 0; i < m; i++ )
+    	{
+		if ( i < n )
+		{
+			if ( x[i] != y[i] )
+      				S[i] = 1;
+			else
+				S[i] = 0;
+		}
+		else
+			S[i] = m - 1;	
+    	}
+	return ( 1 );
+}  

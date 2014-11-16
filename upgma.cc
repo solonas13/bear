@@ -375,14 +375,13 @@ unsigned int upgma_dist ( TPOcc ** D, unsigned int d, struct TSwitch sw, int * R
 			}
 		}
 
-
 		unsigned int r = 0;
 		for ( int i = 0; i < nE[imin]; i ++ )
 		{
 			unsigned int ii = C[imin][i];
 			//we initialise it to -1
 			R[ii] = -1; 
-			unsigned int br = sw . k + 1;
+			double br = sw . k + 1;
 			for ( int j = 0; j < nE[jmin]; j ++ )
 			{
 				unsigned int jj = C[jmin][j];
@@ -402,6 +401,14 @@ unsigned int upgma_dist ( TPOcc ** D, unsigned int d, struct TSwitch sw, int * R
 			C[jmin][nE[jmin]] = C[imin][i];
 			nE[jmin]++;
 		}
+
+		#if 1
+		for ( int j = 0; j < nE[jmin]; j ++ )
+		{
+			fprintf( stderr, " (%d, %d) ", C[jmin][j], R[C[jmin][j]] );
+		}
+		fprintf( stderr, "\n" );
+		#endif
 
 		#if 0
 		/* Here we update the Clusters: we add the larger to the smaller */

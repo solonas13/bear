@@ -43,8 +43,9 @@ struct TSwitch
    char               * outliers_filename;
    unsigned int         matrix;
    unsigned int         k;
+   unsigned int         D;
+   unsigned int         A;
    unsigned int         d;
-   unsigned int         gaps;
    double         	O;
    double	        E;
    double         	R;
@@ -72,11 +73,14 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch  s
 unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
 unsigned int nw_algorithm ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
 unsigned int nw_algorithm_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D, int ** H);
+unsigned int cyc_nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double * score, int * rot );
 unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y,  unsigned int n, struct TSwitch  sw, unsigned int * S );
-unsigned int r_errors_vec	( double ** D, unsigned int m, unsigned int n, struct TSwitch  sw, double * Sl );
-unsigned int l_errors_vec	( double ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch  sw, double * Sr, int * Pr );
+unsigned int edit_distance ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D );
+unsigned int edit_distance_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D, int ** H );
+unsigned int r_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, struct TSwitch  sw, int * Sl );
+unsigned int l_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch  sw, int * Sr, int * Pr );
 unsigned int upgma_dist ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R );
 unsigned int upgma_sim ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R );
 unsigned int maxshift_hd ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );

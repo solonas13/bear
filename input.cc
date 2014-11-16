@@ -32,6 +32,8 @@ static struct option long_options[] =
    { "output-file",             required_argument, NULL, 'o' },
    { "outliers-file",           required_argument, NULL, 'l' },
    { "max-dist",                required_argument, NULL, 'k' },
+   { "distance",                required_argument, NULL, 'D' },
+   { "aln-type",                required_argument, NULL, 'A' },
    { "cmp-mod",                 required_argument, NULL, 'd' },
    { "max-gap",                 required_argument, NULL, 'g' },
    { "fac-len",                 required_argument, NULL, 'w' },
@@ -63,8 +65,10 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> output_filename                = NULL;
    sw -> rotations_filename             = NULL;
    sw -> outliers_filename              = NULL;
+   sw -> D                              = 0;
+   sw -> A                              = 0;
    sw -> T                              = 1;
-   sw -> k                              = 0;
+   sw -> k                              = 10;
    sw -> w                              = 45;
    sw -> O                              = -10.0;
    sw -> E                              = -1.0;
@@ -72,7 +76,7 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> d                              = 0;
    args = 0;
 
-   while ( ( opt = getopt_long ( argc, argv, "a:p:t:o:k:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
+   while ( ( opt = getopt_long ( argc, argv, "a:p:t:o:k:D:A:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
     {
       switch ( opt )
        {
@@ -101,7 +105,6 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
               return ( 0 );
             }
            sw -> k = val;
-           args ++;
            break;
 
          case 'd':
@@ -112,6 +115,24 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
             }
            sw -> d = val;
            args ++;
+           break;
+
+         case 'D':
+           val = strtol ( optarg, &ep, 10 );
+           if ( optarg == ep )
+            {
+              return ( 0 );
+            }
+           sw -> D = val;
+           break;
+
+         case 'A':
+           val = strtol ( optarg, &ep, 10 );
+           if ( optarg == ep )
+            {
+              return ( 0 );
+            }
+           sw -> A = val;
            break;
 
          case 'w':
@@ -179,7 +200,7 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
        }
     }
 
-   if ( args < 5 )
+   if ( args < 4 )
      {
        usage ();
        exit ( 1 );
@@ -188,7 +209,6 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
      return ( optind );
  }
 
-
 /* 
 Usage of the tool 
 */
@@ -196,26 +216,31 @@ void usage ( void )
  {
    fprintf ( stdout, " Usage: bear <options>\n" );
    fprintf ( stdout, " Standard (Mandatory):\n" );
-   fprintf ( stdout, "  -a, --alphabet            <str>     `DNA' for nucleotide  sequences or `PROT' for\n"
+   fprintf ( stdout, "  -a, --alphabet            <str>     `DNA' for nucleotide  sequences  or `PROT' for\n"
                      "                                      protein  sequences. \n" );
    fprintf ( stdout, "  -p, --seqs-file           <str>     MultiFASTA input filename.\n" );
    fprintf ( stdout, "  -o, --output-file         <str>     Output filename.\n" );
-   fprintf ( stdout, "  -k, --max-dist            <int>     Maximum distance between pairs of sequences.\n");
-   fprintf ( stdout, "  -d, --cmp-mod             <int>     Comparison model (0 for Hamming distance; or\n"
-                     "                                      1 for affine gap penalty with sub matrices; or\n"
-                     "                                      2 for More Divergent Sequences).\n" );
+   fprintf ( stdout, "  -d, --cmp-mod             <int>     Comparison model (0 for small pairwise distance;\n"
+                     "                                      or 1 for pairwise distance of fixed-length factors;\n"
+                     "                                      or 2 for affine gap penalty with sub matrices).\n" );
    fprintf ( stdout, " Optional:\n" );
-   fprintf ( stdout, "  -w, --fac-len             <int>     Maximum length of factor to be searched with\n"
-                     "                                      option `-d 2' (default: 45). \n" );
-   fprintf ( stdout, "  -T, --num-threads         <int>     Number of threads to be used (default: 1).\n" );
+   fprintf ( stdout, "  -k, --max-dist            <int>     Maximum distance between pairs of sequences to be\n"
+                     "                                      used with option `-d 0' or `-d 1' (default: 10). \n" );
+   fprintf ( stdout, "  -D, --distance            <int>     Hamming (0) or edit (1) distance to be used with\n"
+                     "                                      option `-d 0' or `-d 1' (default: 0). \n" );
+   fprintf ( stdout, "  -w, --fac-len             <int>     Fixed length of factors  to be used with option\n"
+                     "                                      `-d 1' (default: 45). \n" );
+   fprintf ( stdout, "  -A, --aln-type            <int>     Global (0) or local (1) alignment to be used with\n"
+                     "                                      option `-d 2' (default: 0). \n" );
    fprintf ( stdout, "  -O, --opn-gap             <dbl>     Affine gap open penalty (default: -10.0).\n" );
    fprintf ( stdout, "  -E, --ext-gap             <dbl>     Affine gap extension penalty (default: -1.0).\n" );
-   fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score\n"
-                     "                                      based on the sub matrix used (default: 0.1).\n" );
-   fprintf ( stdout, "  -l, --outliers-file       <str>     Outliers filename --- outputs a file with\n"
-                     "                                      the sequences which were not rotated. \n" );
+   fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score based on\n"
+                     "                                      the sub matrix used (default: 0.1).\n" );
+   fprintf ( stdout, "  -T, --num-threads         <int>     Number of threads to be used (default: 1).\n" );
+   fprintf ( stdout, "  -l, --outliers-file       <str>     Outliers filename  ---  outputs a file with the\n"
+                     "                                      sequences which were not rotated. \n" );
    fprintf ( stdout, " Miscellaneous:\n" );
    fprintf ( stdout, "  -t, --ref-file            <str>     Reference sequence filename in FASTA format.\n" );
-   fprintf ( stdout, "  -r, --rot-file            <str>     MultiFASTA filename --- outputs a file with\n"
+   fprintf ( stdout, "  -r, --rot-file            <str>     MultiFASTA filename  ---  outputs a file with\n"
                      "                                      random rotations of the input sequences. \n" );
  }

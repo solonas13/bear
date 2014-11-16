@@ -8,7 +8,7 @@ LFLAGS= -std=c++11 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libdatri
  
 EXE=    bear
  
-SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc sw.cc
+SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc sw.cc nw.cc utils.cc matrices.cc
  
 HD=     beardefs.h globals.h filter.h aca.h EDNAFULL.h EBLOSUM62.h Makefile
  
@@ -34,7 +34,7 @@ $(OBJ): $(MF) $(HD)
 clean: 
 	rm -f $(OBJ) $(EXE) *~
 
-cleanall: 
+clean-all: 
 	rm -f $(OBJ) $(EXE) *~
 	rm -r ahocorasick
 	rm -r libdatrie
