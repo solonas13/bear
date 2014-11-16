@@ -402,7 +402,7 @@ unsigned int upgma_dist ( TPOcc ** D, unsigned int d, struct TSwitch sw, int * R
 			nE[jmin]++;
 		}
 
-		#if 1
+		#if 0
 		for ( int j = 0; j < nE[jmin]; j ++ )
 		{
 			fprintf( stderr, " (%d, %d) ", C[jmin][j], R[C[jmin][j]] );
