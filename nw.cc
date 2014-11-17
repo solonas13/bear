@@ -27,7 +27,7 @@
 #define max(a,b) ((a) > (b)) ? (a) : (b)
 #define min(a,b) ((a) < (b)) ? (a) : (b)
 
-unsigned int nw_algorithm ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T )
+unsigned int nw ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T )
 {
 	int i;
 	int j;
@@ -100,7 +100,7 @@ unsigned int nw_algorithm ( unsigned char * p, unsigned int m, unsigned char * t
 }
 
 
-unsigned int nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T, int ** H )
+unsigned int nw_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double ** T, int ** H )
 {
 
 	int i;
@@ -206,7 +206,7 @@ unsigned int nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char
 	return ( 1 );
 }
 
-unsigned int cyc_nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char * tt, unsigned int n, struct TSwitch sw, double * score, int * rot )
+unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, unsigned int n, struct TSwitch sw, double * score, int * rot )
 {
  	int i;
     	int j;

@@ -737,7 +737,7 @@ int main(int argc, char **argv)
 
 						D[i][j] . err = -DBL_MAX;
 
-						bcf_sw_ls ( seq[i], m, xjw, nn, sw, M );
+						sw_ls ( seq[i], m, xjw, nn, sw, M );
 
 						double max_sim = -DBL_MAX;
 
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
 						double score = -DBL_MAX;
 						int rot = 0;
 
-						cyc_nw_algorithm_wbt ( seq[i], m, seq[j], n, sw, &score, &rot );
+						cyc_nw_ls ( seq[i], m, seq[j], n, sw, &score, &rot );
 						D[i][j] . err = score;
 
 						int a = rot;

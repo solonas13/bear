@@ -71,11 +71,11 @@ typedef tuple<int,int,int> mytuple;
 
 unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
 unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
-unsigned int nw_algorithm ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
-unsigned int nw_algorithm_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D, int ** H);
-unsigned int cyc_nw_algorithm_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double * score, int * rot );
-unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
-unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
+unsigned int nw ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
+unsigned int nw_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D, int ** H);
+unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, struct TSwitch sw, double * score, int * rot );
+unsigned int sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
+unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D );
 unsigned int hamming_distance ( unsigned char * x, unsigned int m, unsigned char * y,  unsigned int n, struct TSwitch  sw, unsigned int * S );
 unsigned int edit_distance ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D );
 unsigned int edit_distance_wbt ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, unsigned int ** D, int ** H );

@@ -30,7 +30,7 @@
 /*
 The Smith-Waterman algorithm with affine penalty scores
 */
-unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
+unsigned int sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
 {
 
  	int i;
@@ -124,7 +124,7 @@ unsigned int bcf_sw ( unsigned char * p, unsigned int m, unsigned  char * t, uns
 /*
 The Smith-Waterman algorithm with affine penalty scores in linear space
 */
-unsigned int bcf_sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
+unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
 {
 
  	int i;
