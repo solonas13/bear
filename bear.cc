@@ -809,7 +809,7 @@ int main(int argc, char **argv)
 			}	
 		}
 
-		#if 0
+		#if 1
 		for ( int i = 0; i < num_seqs; i ++ )
 		{
 			for ( int j = 0; j < num_seqs; j ++ )
