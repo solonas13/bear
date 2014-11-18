@@ -206,57 +206,65 @@ unsigned int nw_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsi
 	return ( 1 );
 }
 
-unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, unsigned int n, struct TSwitch sw, double * score, int * rot )
+unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw, double * score, int * rot )
 {
  	int i;
     	int j;
 	int r;
+    	double g = sw . O;
+    	double h = sw . E;
+    	double matching_score = 0;
+	double max_score = -DBL_MAX;
+
+	unsigned char * yr;	
+	if ( ( yr = ( unsigned char * ) calloc ( ( n + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
+	{
+	    fprintf( stderr, " Error: 't' could not be allocated!\n");
+	    return ( 0 );
+	}
+
         double * d0;
         double * d1;
         double * t0;
         double * t1;
         double * in;
-    	double g = sw . O;
-    	double h = sw . E;
-    	double matching_score = 0;
-	double max_score = -DBL_MAX;
+	if ( ( d0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+	{
+	    fprintf( stderr, " Error: 'd0' could not be allocated!\n");
+	    return ( 0 );
+	}
+	if ( ( d1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL  )
+	{
+	    fprintf( stderr, " Error: 'd1' could not be allocated!\n");
+	    return ( 0 );
+	}
+	if ( ( t0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+	{
+	    fprintf( stderr, " Error: 't0' could not be allocated!\n");
+	    return ( 0 );
+	}
+	if ( ( t1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+	{
+	    fprintf( stderr, " Error: 't1' could not be allocated!\n");
+	    return ( 0 );
+	}
+	if ( ( in = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
+	{
+	    fprintf( stderr, " Error: 'in' could not be allocated!\n");
+	    return ( 0 );
+	}
         
 	for ( r = 0; r < n; r++ )
 	{
-		unsigned char * t;	
-		if ( ( t = ( unsigned char * ) calloc ( ( n + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
-		{
-		    fprintf( stderr, " Error: 't' could not be allocated!\n");
-		    return ( 0 );
-		}
+		yr[0] = '\0';
 
-		create_rotation ( tt, r, t );
+		create_rotation ( y, r, yr );
 
-		if ( ( d0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
-		{
-		    fprintf( stderr, " Error: 'd0' could not be allocated!\n");
-		    return ( 0 );
-		}
-		if ( ( d1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL  )
-		{
-		    fprintf( stderr, " Error: 'd1' could not be allocated!\n");
-		    return ( 0 );
-		}
-		if ( ( t0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
-		{
-		    fprintf( stderr, " Error: 't0' could not be allocated!\n");
-		    return ( 0 );
-		}
-		if ( ( t1 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
-		{
-		    fprintf( stderr, " Error: 't1' could not be allocated!\n");
-		    return ( 0 );
-		}
-		if ( ( in = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
-		{
-		    fprintf( stderr, " Error: 'in' could not be allocated!\n");
-		    return ( 0 );
-		}
+		memset ( d0, 0, n + 1 );
+		memset ( d1, 0, n + 1 );
+		memset ( t0, 0, n + 1 );
+		memset ( t1, 0, n + 1 );
+		memset ( in, 0, n + 1 );
 
 		for ( j = 0; j < n + 1; j++ )
 		{	
@@ -266,11 +274,8 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 
 		t0[0] = 0; 
 
-		if ( m > 0 )
-			t1[0] = g; 
-
-		if ( n > 0 )
-			t0[1] = g;
+		if ( m > 0 )	t1[0] = g; 
+		if ( n > 0 )	t0[1] = g;
 
 		for ( j = 2; j < n + 1; j++ )
 			t0[j] = t0[j - 1] + h;
@@ -283,7 +288,6 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 			    
 			    	switch ( i % 2 ) 
 				{
-				
 					case 0:
 
 					if ( j == 0 )
@@ -302,7 +306,7 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 						in[j] = max ( in[j - 1] + h, t0[j - 1] + g ); //i0
 						v = in[j];
 			    
-						matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
+						matching_score = ( sw . matrix ? pro_delta( yr[j - 1], x[i - 1] ) : nuc_delta( yr[j - 1], x[i - 1] ) ) ;
 						if ( matching_score == ERR )
 							return 0;
 						w = t1[j - 1] + matching_score;
@@ -314,7 +318,6 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 							max_score = t0[j];
 							( * score )  = max_score;
 							( * rot ) = r;
-				    
 						}
 					}
 			    
@@ -331,14 +334,13 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 					}	
 					else 
 					{
-
 						d1[j] = max ( d0[j] + h, t0[j] + g );
 						u = d1[j];
 			    
 						in[j] = max ( in[j - 1] + h, t1[j - 1] + g ); //i1
 						v = in[j];
 			    
-						matching_score = ( sw . matrix ? pro_delta( t[j - 1], p[i - 1] ) : nuc_delta( t[j - 1], p[i - 1] ) ) ;
+						matching_score = ( sw . matrix ? pro_delta( yr[j - 1], x[i - 1] ) : nuc_delta( yr[j - 1], x[i - 1] ) ) ;
 						if ( matching_score == ERR )
 							return 0;
 						w = t0[j - 1] + matching_score;
@@ -350,7 +352,6 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 							max_score    = t1[j];
 							( * score )  = max_score;
 							( * rot )    = r;
-				    
 						} 
 					}                   
 			    
@@ -360,12 +361,13 @@ unsigned int cyc_nw_ls ( unsigned char * p, unsigned int m, unsigned char * tt, 
 			}
 		}
 		
-		free ( t );
-		free( d0 );
-		free( d1 );
-		free( t0 );
-		free( t1 );
-		free( in );
 	}
+
+	free ( yr );
+	free( d0 );
+	free( d1 );
+	free( t0 );
+	free( t1 );
+	free( in );
 
 }
