@@ -775,7 +775,7 @@ int main(int argc, char **argv)
 				fprintf( stderr, " The minimum allowed similarity score is %lf.\n", sw . min_sim );
 
 				/* For every sequence i */
-				#pragma omp parallel for
+//				#pragma omp parallel for
 				for ( int i = 0; i < num_seqs; i++ )
 				{
 					unsigned int m = strlen ( ( char * ) seq[i] );
@@ -798,6 +798,7 @@ int main(int argc, char **argv)
 						int rot = 0;
 
 						cyc_nw_ls ( seq[i], m, seq[j], n, sw, &score, &rot );
+						
 						D[i][j] . err = score;
 
 						int a = rot;

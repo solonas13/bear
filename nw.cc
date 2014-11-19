@@ -228,6 +228,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
         double * t0;
         double * t1;
         double * in;
+
 	if ( ( d0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
 	{
 	    fprintf( stderr, " Error: 'd0' could not be allocated!\n");
@@ -313,7 +314,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 
 						t0[j] = max ( w, max ( u, v ) );
 			    
-						if ( i == m && j == n && t0[n] > max_score )
+						if ( i == m && t0[j] > max_score )
 						{
 							max_score = t0[j];
 							( * score )  = max_score;
@@ -347,7 +348,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 
 						t1[j] = max ( w, max ( u, v ) );
 			    
-						if ( i == m && j == n && t1[n] > max_score )
+						if ( i == m && t1[j] > max_score )
 						{
 							max_score    = t1[j];
 							( * score )  = max_score;
@@ -370,4 +371,105 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 	free( t1 );
 	free( in );
 
+}
+
+unsigned int cyc_nw ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw, double * score, int * rot )
+{
+	int i;
+	int j;
+        double **       T;
+        double **       D;
+        double **       I;
+	double g = sw . O;
+        double h = sw . E;
+	double matching_score = 0;
+	double max_score = -DBL_MAX;
+
+	unsigned char * yr;	
+	if ( ( yr = ( unsigned char * ) calloc ( ( n + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
+	{
+	    	fprintf( stderr, " Error: 't' could not be allocated!\n");
+	    	return ( 0 );
+	}
+
+	for ( int r = 0; r < n; r++ )
+	{
+		yr[0] = '\0';
+
+		create_rotation ( y, r, yr );
+
+		T = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
+		for ( int j = 0; j < m + 1; j ++ )
+			T[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
+		D = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
+		for ( int j = 0; j < m + 1; j ++ )
+			D[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
+		I = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
+		for ( int j = 0; j < m + 1; j ++ )
+			I[j] = ( double * ) calloc ( n + 1,  sizeof ( double ) );
+
+		for ( i = 0; i < m + 1; i++ )
+		{	
+			D[i][0] = -DBL_MAX;
+			I[i][0] = -DBL_MAX;
+		}
+
+		for ( j = 1; j < n + 1; j++ )
+		{	
+			D[0][j] = -DBL_MAX;
+			I[0][j] = -DBL_MAX;
+		}
+
+		T[0][0] = 0; 
+
+		if ( m > 0 )
+			T[1][0] = g; 
+
+		for ( i = 2; i < m + 1; i++ )
+			T[i][0] = T[i - 1][0] + h;
+
+		if ( n > 0 )
+			T[0][1] = g;
+
+		for ( j = 2; j < n + 1; j++ )
+			T[0][j] = T[0][j - 1] + h;
+
+		for( i = 1; i < m + 1; i ++ )
+		{
+			for( j = 1; j < n + 1; j++ )
+			{
+
+				D[i][j] = max ( D[i - 1][j] + h, T[i - 1][j] + g );
+				double u = D[i][j];
+				I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
+				double v = I[i][j];
+				matching_score = ( sw . matrix ? pro_delta( yr[j - 1], x[i - 1] ) : nuc_delta( yr[j - 1], x[i - 1] ) ) ;
+				if ( matching_score == ERR )
+					return 0;
+				double w = T[i - 1][j - 1] + matching_score;
+
+				T[i][j] = max ( w, max( u, v ) );
+
+				if ( i == m && T[i][j] > max_score )
+				{
+					max_score    = T[i][j];
+					( * score )  = max_score;
+					( * rot )    = r;
+				}
+			}
+		}
+
+		for ( j = 0; j < m + 1; j ++ )
+		{
+			free ( T[j] );
+			free ( D[j] );
+			free ( I[j] );
+		}
+		free ( T );
+		free ( D );
+		free ( I );	
+	}
+
+	free ( yr );
+	return ( 1 );
 }
