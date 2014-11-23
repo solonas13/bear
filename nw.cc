@@ -267,6 +267,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 		memset ( t1, 0, n + 1 );
 		memset ( in, 0, n + 1 );
 
+
 		for ( j = 0; j < n + 1; j++ )
 		{	
 			d0[j] = -DBL_MAX;
@@ -314,8 +315,16 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 
 						t0[j] = max ( w, max ( u, v ) );
 			    
-						if ( i == m && t0[j] > max_score )
+						if ( i == m && j == n && t0[j] > max_score )
 						{
+							/*
+			    				if ( t0[j] == 267.5 ) 
+							{ 
+								fprintf ( stderr, "r = %d\n", r ); 
+								fprintf ( stderr, " %s\n", x ); 
+								fprintf ( stderr, " %s\n", yr ); 
+								getchar();
+							}*/
 							max_score = t0[j];
 							( * score )  = max_score;
 							( * rot ) = r;
@@ -347,9 +356,16 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 						w = t0[j - 1] + matching_score;
 
 						t1[j] = max ( w, max ( u, v ) );
-			    
-						if ( i == m && t1[j] > max_score )
+						if ( i == m && j == n && t1[j] > max_score )
 						{
+							/*
+			    				if ( t1[j] == 267.5 ) 
+							{
+								fprintf ( stderr, "r = %d\n", r ); 
+								fprintf ( stderr, " %s\n", x ); 
+								fprintf ( stderr, " %s\n", yr ); 
+								getchar();
+							}*/
 							max_score    = t1[j];
 							( * score )  = max_score;
 							( * rot )    = r;
@@ -361,7 +377,6 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 			    	}
 			}
 		}
-		
 	}
 
 	free ( yr );
@@ -450,7 +465,7 @@ unsigned int cyc_nw ( unsigned char * x, unsigned int m, unsigned char * y, unsi
 
 				T[i][j] = max ( w, max( u, v ) );
 
-				if ( i == m && T[i][j] > max_score )
+				if ( i == m && j == n && T[i][j] > max_score )
 				{
 					max_score    = T[i][j];
 					( * score )  = max_score;

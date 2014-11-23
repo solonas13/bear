@@ -774,8 +774,6 @@ int main(int argc, char **argv)
 				fprintf ( stderr, " Alignment type: global with O = %lf and E = %lf.\n", sw . O, sw . E );
 				fprintf( stderr, " The minimum allowed similarity score is %lf.\n", sw . min_sim );
 
-				/* For every sequence i */
-//				#pragma omp parallel for
 				for ( int i = 0; i < num_seqs; i++ )
 				{
 					unsigned int m = strlen ( ( char * ) seq[i] );
@@ -784,12 +782,17 @@ int main(int argc, char **argv)
 						fprintf( stderr, " Error: Cannot allocate memory!\n" );
 						exit( EXIT_FAILURE );
 					}
+				}
 
+				/* For every sequence i */
+				#pragma omp parallel for
+				for ( int i = 0; i < num_seqs; i++ )
+				{
+					unsigned int m = strlen ( ( char * ) seq[i] );
 					for ( int j = 0; j < num_seqs; j ++ )
 					{
 						if ( i == j ) continue;
 
-						/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
 						unsigned int n = strlen ( ( char * ) seq[j] );
 
 						/* Initialise the arrays */
@@ -800,17 +803,13 @@ int main(int argc, char **argv)
 						cyc_nw_ls ( seq[i], m, seq[j], n, sw, &score, &rot );
 						
 						D[i][j] . err = score;
-
-						int a = rot;
-						int b = m - 1;
-						int c = min ( a, b );
-						D[i][j] . rot = m - c;		
+						D[j][i] . rot = rot;		
 					}
 				}
 			}	
 		}
 
-		#if 0
+		#if 1
 		for ( int i = 0; i < num_seqs; i ++ )
 		{
 			for ( int j = 0; j < num_seqs; j ++ )
@@ -832,9 +831,9 @@ int main(int argc, char **argv)
 
 		fprintf ( stderr, " Starting the clustering\n" );
 		if ( d == 0 || d == 1 )
-			upgma_dist ( D, num_seqs, sw, R );
+			upgma_dist ( D, num_seqs, sw, R, seq );
 		if ( d == 2 )
-			upgma_sim ( D, num_seqs, sw, R );
+			upgma_sim ( D, num_seqs, sw, R, seq );
 		
 		fprintf ( stderr, " Preparing the output\n" );
 
