@@ -94,3 +94,52 @@ unsigned int extract_dups ( unsigned char ** xx, unsigned int d, unsigned int * 
         alphabet = NULL;
 	return ( uniq );
 }
+
+unsigned int extract_dups_single_str ( unsigned char * xx, unsigned int m, unsigned int f, int * mf, int * ind, int * dups )
+{
+	AlphaMap *      alphabet = NULL;
+        Trie *          trie = NULL;
+
+        /* Create an empty alphabet */
+        alphabet = alpha_map_new();
+
+        /* Define the alphabet's range */
+        alpha_map_add_range ( alphabet, 0, 127 );
+
+        /* Create an empty trie based on the alphabet */
+        trie = trie_new ( alphabet );
+
+	unsigned int uniq = 0;
+
+	for ( int j = 0; j < f; j++ )
+	{
+		TrieData data;
+		unsigned int f_id = j;
+		int Nf   = mf[f_id];
+
+		AlphaChar * pf;    
+		pf = ( AlphaChar * ) calloc ( ( Nf + 1 ) , sizeof( AlphaChar ) );
+		for ( int k = 0; k < Nf; k++ )
+		{
+			pf[k] = ( AlphaChar ) xx[ ind[f_id] + k ];
+		}
+		pf[Nf] = '\0';
+
+		if ( trie_retrieve ( trie, pf, &data ) != TRUE )
+		{
+			trie_store ( trie, pf, f_id );
+			dups[ f_id ] = -1;		//first occurrence
+			uniq ++;
+		}
+		else
+			dups[ f_id ] = data;
+ 
+		free ( pf );
+	}
+	
+	trie_free ( trie );
+        trie = NULL;
+        alpha_map_free ( alphabet );
+        alphabet = NULL;
+	return ( uniq );
+}

@@ -45,6 +45,560 @@ int * gP  = NULL;
 int gMatches = 0;
 int gMax_alloc_matches = ALLOC_SIZE;
 
+unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch sw, unsigned int * rotation, unsigned int * distance )
+{
+	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
+	unsigned int i = 0;
+	( * distance ) = sw . k + 1;
+
+	unsigned int n = strlen ( ( char * ) y );		//this is the length of the text.
+	unsigned int m = strlen ( ( char * ) x );		//this is the length of the pattern.
+
+	unsigned char * xx; 
+	unsigned int mm = 2 * m - 1;
+	xx = ( unsigned char * ) calloc ( mm + 1, sizeof ( unsigned char ) );
+	if ( xx == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for xx!\n" );
+		return 0;
+	}
+	memmove ( &xx[0], x, m );
+	memmove ( &xx[m], x, m - 1 );
+	xx[mm] = '\0';
+
+	if ( ( int ) ( mm / f ) >= OPT_LEN_FRA )
+		f = ( int ) ( mm / OPT_LEN_FRA );
+	else
+		f = 2 * sw . k + 4;	
+
+	int * ind;			//this is the starting position of the fragment
+	int * mf;			//this is the length of the fragment
+
+	ind = ( int * ) calloc ( f, sizeof ( int ) );
+	mf = ( int * ) calloc ( f, sizeof ( int ) );
+	
+	for ( int j = 0; j < f; j++ )
+		fragments ( 0, j, f, mm, mf, ind );
+
+	/* Check whether there exist duplicated fragments */
+	char ** seqs;
+	int   * dups;		
+
+        dups  = ( int * ) calloc ( f, sizeof ( int ) );
+	unsigned int uniq;
+	uniq = extract_dups_single_str ( xx, m, f, mf, ind, dups );
+
+	int   	* d_occ;	// d_occ[i] stores the id of the next fragment that is equal to itself a la linked-list manner
+	int   	* l_occ;
+        l_occ = ( int * ) calloc ( f, sizeof ( int ) );
+        d_occ = ( int * ) calloc ( f, sizeof ( int ) );
+	for ( int j = 0; j < f; j++ )	
+	{
+		d_occ[j] = -1;
+		l_occ[j] = -1;
+	}
+
+	/* In case there exist duplicated fragmnents */
+	if ( uniq < f )
+	{
+               	seqs = ( char ** ) calloc ( f, sizeof ( char * ) );
+		for ( int j = 0; j < f; j++ )	
+		{
+			unsigned int f_id = j;
+
+			/* Add the fragment once */
+			if ( dups[f_id] < 0 )
+			{
+				seqs[f_id] = ( char * ) calloc ( mf[f_id] + 1, sizeof ( char ) );
+				memmove ( &seqs[f_id][0], &xx[ ind[f_id] ], mf[f_id] );
+				seqs[f_id][mf[f_id]] = '\0';
+			}
+			else //add nothing since it is already added 
+			{
+				seqs[f_id] = ( char * ) calloc ( 1, sizeof ( char ) );
+				seqs[f_id][0] = '\0';
+
+				if ( l_occ[ dups[f_id] ] == -1 )		//if it the first duplicated fragment
+					d_occ[ dups[f_id] ] = f_id;
+				else
+					d_occ[ l_occ[ dups[f_id] ] ] = f_id;
+				l_occ[ dups[f_id] ] = f_id;
+			}		
+		}
+	}
+	else //add all the fragments since there exist no duplicated fragment
+	{
+                seqs = ( char ** ) calloc ( f, sizeof ( char * ) );
+		for ( int j = 0; j < f; j++ )	
+		{
+			unsigned int f_id = j;
+			seqs[f_id] = ( char * ) calloc ( mf[f_id] + 1, sizeof ( char ) );
+			memmove ( &seqs[f_id][0], &xx[ ind[f_id] ], mf[f_id] );
+			seqs[f_id][mf[f_id]] = '\0';
+		}
+	}
+
+	int * F = NULL;
+	F = ( int * ) realloc ( F,  ( ALLOC_SIZE ) * sizeof ( int ) );
+	if ( F == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for F.\n" );
+		return 0;
+	}
+
+	int * P = NULL;
+	P = ( int * ) realloc ( P,  ( ALLOC_SIZE ) * sizeof ( int ) );
+	if ( P == NULL ) 
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for P.\n" );
+		return 0;
+	}
+
+	int matches;
+
+        gF  = F;
+        gP  = P;
+
+	/* Aho Corasick Automaton */
+	filtering ( ( char * ) y, n, ( char ** ) seqs, f );
+
+        F  = gF;
+        P  = gP;
+	matches = gMatches;
+
+	unsigned char * yr;
+	yr = ( unsigned char * ) calloc ( n + 1,  sizeof ( unsigned char ) );
+	if ( yr == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for Tr.\n" );
+		return 0;
+	}
+	for ( int j = 0; j < n; j++ )
+		yr[j] = y[n - j - 1];
+	yr[n] = '\0';
+
+	unsigned char * xxr; 
+	xxr = ( unsigned char * ) calloc ( mm + 1, sizeof ( unsigned char ) );
+	if ( xxr == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for xx!\n" );
+		return 0;
+	}
+	for ( int j = 0; j < mm; j++ )
+		xxr[j] = xx[mm - j - 1];
+	xxr[mm] = '\0';
+	
+	int * Sr = ( int * ) calloc ( mm, sizeof ( int ) );
+	int * Sl = ( int * ) calloc ( mm, sizeof ( int ) );
+	int * Slr = ( int * ) calloc ( mm, sizeof ( int ) );
+	int * M = ( int * ) calloc ( mm, sizeof ( int ) );
+	unsigned int ** D;
+	D = ( unsigned int ** ) calloc ( mm + 1,  sizeof ( unsigned int * ) );
+	for ( int j = 0; j < mm + 1; j ++ )
+		D[j] = ( unsigned int * ) calloc ( mm + 1,  sizeof ( unsigned int ) );
+
+	for ( int i = 0; i < matches; i++ )
+	{
+		int jj = F[i];		// this is the ID of fragment.
+		do
+		{
+			int ii = P[i];
+			int iir = n - ii - mf[jj];
+
+			int r = mm - ind[jj] - mf[jj];
+			int l = ind[jj];
+			int exr = min( iir , r + sw . k );
+			int exl = min( ii, l + sw . k );
+
+			int pxx = ind[jj] + mf[jj];
+			int pt = ii + mf[jj];
+			int pxxr = mm - ind[jj];
+			int ptr = iir + mf[jj];
+
+			/* the right part*/
+			if ( r > 0 )
+			{
+				memset ( Sr, 0, r ); 
+				edit_distance ( &xx[pxx], r, &y[pt], exr, sw, D );
+				r_errors_vec  ( D, r, exr, sw, Sr );
+			}
+
+			/* the left part */
+			if ( l > 0 )
+			{
+				memset ( Sl, 0, l ); 
+				memset ( Slr, 0, l ); 
+				edit_distance ( &xxr[pxxr], l, &yr[ptr], exl, sw, D );
+				r_errors_vec  ( D, l, exl, sw, Slr );
+
+				for ( int j = 0; j < l; j ++ )
+					Sl[l - j - 1] = Slr[j];
+			}
+
+			memset ( M, 0, mm ); 
+			unsigned int a = 0;
+			unsigned int b = 0;
+
+			for ( int j = 0; j < mm; j++ )
+			{
+				if ( j < l )
+					M[j] = Sl[a++];
+				if ( j >= l + mf[jj] )
+					M[j] = Sr[b++];
+			}		
+
+                        int left  = max ( 0, ( int ) ( ind[jj] + mf[jj] - m )  );	//leftmost rotation j
+                        int right = min ( ind[jj], m - 1 );				//rightmost rotation j
+
+			for ( int j = left; j <= right; j++ )
+			{
+				int dist = 0;
+				int led = 0;
+				int red = 0;
+				int pl = 0;
+
+                                if ( j < ind[jj] )
+				{
+                                        led = M[j];
+					//pl = Pl[j];
+				}
+
+                                if ( j + m > ind[jj] + mf[jj] )
+				{
+                                        red = M[j + m - 1];
+				}
+
+				dist = led + 0 + red;
+
+				if ( dist < ( * distance ) )
+				{
+					//int txt_chars = l + pl;
+					//int pos = ii - txt_chars + j;
+					( * distance ) = dist;
+					( * rotation ) = j;
+				}
+			}	
+
+			jj = d_occ[jj];
+			
+		} while ( jj != -1 );
+	}
+
+	free ( Sr );
+	free ( Sl );
+	free ( Slr );
+	free ( M );
+	for ( int j = 0; j < mm + 1; j ++ )
+		free ( D[j] );
+	free ( D );
+
+	free ( F );
+	free ( P );
+	gF  = NULL;
+	gP  = NULL;
+	gMatches = 0;
+	gMax_alloc_matches = ALLOC_SIZE;
+
+	free ( xx );
+	free ( xxr );
+
+	free ( yr );
+
+	free ( mf );
+	free ( ind );
+
+	for ( int i = 0; i < f; i++ )
+		free ( seqs[i] );
+	free ( seqs );
+
+	free ( l_occ );
+	free ( d_occ );
+	free ( dups );
+
+	return 1;
+}
+
+unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch sw, unsigned int * rotation, unsigned int * distance )
+{
+	unsigned int f = 2 * sw . k + 4;	//this is the number of fragments
+	unsigned int i = 0;
+	( * distance ) = sw . k + 1;
+
+	unsigned int n = strlen ( ( char * ) y );		//this is the length of the text.
+	unsigned int m = strlen ( ( char * ) x );		//this is the length of the pattern.
+
+	unsigned char * xx; 
+	unsigned int mm = 2 * m - 1;
+	xx = ( unsigned char * ) calloc ( mm + 1, sizeof ( unsigned char ) );
+	if ( xx == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for xx!\n" );
+		return 0;
+	}
+	memmove ( &xx[0], x, m );
+	memmove ( &xx[m], x, m - 1 );
+	xx[mm] = '\0';
+
+	if ( ( int ) ( mm / f ) >= OPT_LEN_FRA )
+		f = ( int ) ( mm / OPT_LEN_FRA );
+	else
+		f = 2 * sw . k + 4;	
+
+	int * ind;			//this is the starting position of the fragment
+	int * mf;			//this is the length of the fragment
+
+	ind = ( int * ) calloc ( f, sizeof ( int ) );
+	mf = ( int * ) calloc ( f, sizeof ( int ) );
+	
+	for ( int j = 0; j < f; j++ )
+		fragments ( 0, j, f, mm, mf, ind );
+
+	/* Check whether there exist duplicated fragments */
+	char ** seqs;
+	int   * dups;		
+
+        dups  = ( int * ) calloc ( f, sizeof ( int ) );
+	unsigned int uniq;
+	uniq = extract_dups_single_str ( xx, m, f, mf, ind, dups );
+
+	int   	* d_occ;	// d_occ[i] stores the id of the next fragment that is equal to itself a la linked-list manner
+	int   	* l_occ;
+        l_occ = ( int * ) calloc ( f, sizeof ( int ) );
+        d_occ = ( int * ) calloc ( f, sizeof ( int ) );
+	for ( int j = 0; j < f; j++ )	
+	{
+		d_occ[j] = -1;
+		l_occ[j] = -1;
+	}
+
+	/* In case there exist duplicated fragmnents */
+	if ( uniq < f )
+	{
+               	seqs = ( char ** ) calloc ( f, sizeof ( char * ) );
+		for ( int j = 0; j < f; j++ )	
+		{
+			unsigned int f_id = j;
+
+			/* Add the fragment once */
+			if ( dups[f_id] < 0 )
+			{
+				seqs[f_id] = ( char * ) calloc ( mf[f_id] + 1, sizeof ( char ) );
+				memmove ( &seqs[f_id][0], &xx[ ind[f_id] ], mf[f_id] );
+				seqs[f_id][mf[f_id]] = '\0';
+			}
+			else //add nothing since it is already added 
+			{
+				seqs[f_id] = ( char * ) calloc ( 1, sizeof ( char ) );
+				seqs[f_id][0] = '\0';
+
+				if ( l_occ[ dups[f_id] ] == -1 )		//if it the first duplicated fragment
+					d_occ[ dups[f_id] ] = f_id;
+				else
+					d_occ[ l_occ[ dups[f_id] ] ] = f_id;
+				l_occ[ dups[f_id] ] = f_id;
+			}		
+		}
+	}
+	else //add all the fragments since there exist no duplicated fragment
+	{
+                seqs = ( char ** ) calloc ( f, sizeof ( char * ) );
+		for ( int j = 0; j < f; j++ )	
+		{
+			unsigned int f_id = j;
+			seqs[f_id] = ( char * ) calloc ( mf[f_id] + 1, sizeof ( char ) );
+			memmove ( &seqs[f_id][0], &xx[ ind[f_id] ], mf[f_id] );
+			seqs[f_id][mf[f_id]] = '\0';
+		}
+	}
+
+	int * F = NULL;
+	F = ( int * ) realloc ( F,  ( ALLOC_SIZE ) * sizeof ( int ) );
+	if ( F == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for F.\n" );
+		return 0;
+	}
+
+	int * P = NULL;
+	P = ( int * ) realloc ( P,  ( ALLOC_SIZE ) * sizeof ( int ) );
+	if ( P == NULL ) 
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for P.\n" );
+		return 0;
+	}
+
+	int matches;
+
+        gF  = F;
+        gP  = P;
+
+	/* Aho Corasick Automaton */
+	filtering ( ( char * ) y, n, ( char ** ) seqs, f );
+
+        F  = gF;
+        P  = gP;
+	matches = gMatches;
+
+	unsigned char * yr;
+	yr = ( unsigned char * ) calloc ( n + 1,  sizeof ( unsigned char ) );
+	if ( yr == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for Tr.\n" );
+		return 0;
+	}
+	for ( int j = 0; j < n; j++ )
+		yr[j] = y[n - j - 1];
+	yr[n] = '\0';
+
+	unsigned char * xxr; 
+	xxr = ( unsigned char * ) calloc ( mm + 1, sizeof ( unsigned char ) );
+	if ( xxr == NULL )
+	{
+		fprintf ( stderr, " Error: Cannot allocate memory for xx!\n" );
+		return 0;
+	}
+	for ( int j = 0; j < mm; j++ )
+		xxr[j] = xx[mm - j - 1];
+	xxr[mm] = '\0';
+
+	unsigned int * Sr = ( unsigned int * ) calloc ( mm, sizeof ( unsigned int ) );
+	unsigned int * Sl = ( unsigned int * ) calloc ( mm, sizeof ( unsigned int ) );
+	unsigned int * Slr = ( unsigned int * ) calloc ( mm, sizeof ( unsigned int ) );
+	int * M = ( int * ) calloc ( mm, sizeof ( int ) );
+
+	for ( int i = 0; i < matches; i++ )
+	{
+		int jj = F[i];		// this is the ID of fragment.
+		do
+		{
+			int ii = P[i];
+			int iir = n - ii - mf[jj];
+			
+			int r = mm - ind[jj] - mf[jj];
+			int l = ind[jj];
+			int exr = min( iir , r );
+			int exl = min( ii, l );
+
+			int pxx = ind[jj] + mf[jj];
+			int pt = ii + mf[jj];
+			int pxxr = mm - ind[jj];
+			int ptr = iir + mf[jj];
+
+			/* the right part*/
+			if ( r > 0 )
+			{
+				memset ( Sr, 0, r ); 
+
+				/* If there is not text on the right to extend */
+				if ( exr == 0 )
+				{
+					for ( int j = 0; j < r; j ++ )
+						Sr[j] = sw . k + 1;
+				}
+				else
+				{
+					hamming_distance ( &xx[pxx], r, &y[pt], exr, sw , Sr );
+				}
+			}
+
+			/* the left part */
+			if ( l > 0 )
+			{
+				memset ( Sl, 0, l ); 
+				memset ( Slr, 0, l ); 
+
+				/* If there is not text on the left to extend */
+				if ( exl == 0 )
+				{
+					for ( int j = 0; j < l; j ++ )
+						Sl[j] = sw . k + 1;
+				}
+				else
+				{
+					hamming_distance ( &xxr[pxxr], l, &yr[ptr], exl, sw , Slr );
+
+					for ( int j = 0; j < l; j ++ )
+					{
+						Sl[l - j - 1] = Slr[j];
+					}
+				}
+			}
+
+			memset ( M, 0, mm ); 
+			unsigned int a = 0;
+			unsigned int b = 0;
+
+			for ( int j = 0; j < mm; j++ )
+			{
+				if ( j < l )
+					M[j] = Sl[a++];
+				if ( j >= l + mf[jj] )
+					M[j] = Sr[b++];
+			}
+
+                        int left  = max ( 0, ( int ) ( ind[jj] + mf[jj] - m )  );
+                        int right = min ( ind[jj], m - 1 );
+
+                        int dist = 0;
+
+                        for ( int j = left; j <= right; j++ )
+			{
+
+				if ( j == left )
+				{
+					for ( int l = left; l < left + m; l++ )
+					{
+						dist += M[l];
+					}
+				}
+				else
+				{
+					dist = dist - M[j - 1] + M[j + m - 1];
+				}
+
+				if ( dist < ( * distance ) )
+				{
+					( * rotation ) = j;
+					( * distance ) = dist;
+				}
+			}	
+
+			jj = d_occ[jj];
+			
+		} while ( jj != -1 );
+	}
+
+	free ( Sr );
+	free ( Sl );
+	free ( Slr );
+	free ( M );
+
+	free ( F );
+	free ( P );
+	gF  = NULL;
+	gP  = NULL;
+	gMatches = 0;
+	gMax_alloc_matches = ALLOC_SIZE;
+
+	free ( xx );
+	free ( xxr );
+
+	free ( yr );
+
+	free ( mf );
+	free ( ind );
+
+	for ( int i = 0; i < f; i++ )
+		free ( seqs[i] );
+	free ( seqs );
+
+	free ( l_occ );
+	free ( d_occ );
+	free ( dups );
+
+	return 1;
+}
+
 unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw, TPOcc *** POcc, unsigned int ** NOcc )
 {
 
@@ -315,8 +869,10 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 				for ( int j = 0; j < l + 1; j ++ )
 					H[j] = ( int * ) calloc ( exl + 1,  sizeof ( int ) );
 
-				edit_distance_wbt ( &xxr[w][pxxr], l, &tr[ptr], exl, sw, D, H );
-				l_errors_vec	  ( D, l, exl, H, sw, Slr, Plr );
+				edit_distance     ( &xxr[w][pxxr], l, &tr[ptr], exl, sw, D );
+				r_errors_vec	  ( D, l, exl, sw, Slr );
+				//edit_distance_wbt ( &xxr[w][pxxr], l, &tr[ptr], exl, sw, D, H );
+				//l_errors_vec	  ( D, l, exl, H, sw, Slr, Plr );
 
 				for ( int j = 0; j < l; j ++ )
 				{
@@ -890,8 +1446,6 @@ unsigned int r_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, s
 unsigned int l_errors_vec	( unsigned int ** D, unsigned int m, unsigned int n, int ** H, struct TSwitch sw, int * Sl, int * Pl )
 {
 	int i, j, k;
-
-	unsigned int i_max = min ( m, n + sw . k );
 
 	/* We will process each row of the DP matrix*/
         for ( i = 1; i < m + 1; i ++ )

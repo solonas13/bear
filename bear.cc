@@ -486,7 +486,77 @@ int main(int argc, char **argv)
 		if ( d == 0 ) 
 		{
 			fprintf ( stderr, " Comparison model: small pairwise distance.\n" );
+			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+			for ( int i = 0; i < num_seqs; i++ )
+			{
+				if ( ( D[i] = ( TPOcc * ) calloc ( ( num_seqs ) , sizeof( TPOcc ) ) ) == NULL )
+				{
+					fprintf( stderr, " Error: Cannot allocate memory!\n" );
+					exit( EXIT_FAILURE );
+				}
+			}
+			if ( sw . D == 0 )
+			{
+				fprintf ( stderr, " Distance model: Hamming distance with k = %d.\n", sw . k );
+				//#pragma omp parallel for
+				for ( int i = 0; i < num_seqs; i++ )
+				{
+					unsigned int m = strlen ( ( char * ) seq[i] );
+					if ( ( double ) sw . k / m > 0.10 )
+						fprintf ( stderr, " Warning: Error ratio  %lf is too high for this method.\n", ( double ) sw . k / m );
+					for ( int j = 0; j < num_seqs; j ++ )
+					{
+						if ( i == j ) continue;
 
+						unsigned int n = strlen ( ( char * ) seq[j] );
+
+						/* Initialise the arrays */
+						D[i][j] . err = DBL_MAX;
+						unsigned int distance = DBL_MAX;
+						unsigned int rotation = 0;
+
+						pcsa_hd ( seq[i], seq[j], sw, &rotation, &distance );
+						
+						D[i][j] . err = distance;
+						D[i][j] . rot = rotation;		
+					}
+				}
+			}
+			else
+			{
+				fprintf ( stderr, " Distance model: edit distance with k = %d.\n", sw . k );
+				//#pragma omp parallel for
+				for ( int i = 0; i < num_seqs; i++ )
+				{
+					unsigned int m = strlen ( ( char * ) seq[i] );
+					if ( ( double ) sw . k / m > 0.10 )
+						fprintf ( stderr, " Warning: Error ratio  %lf is too high for this method.\n", ( double ) sw . k / m );
+					for ( int j = 0; j < num_seqs; j ++ )
+					{
+						if ( i == j ) continue;
+
+						unsigned int n = strlen ( ( char * ) seq[j] );
+
+						/* Initialise the arrays */
+						D[i][j] . err = DBL_MAX;
+						unsigned int distance = DBL_MAX;
+						unsigned int rotation = 0;
+
+						pcsa_ed ( seq[i], seq[j], sw, &rotation, &distance );
+						
+						D[i][j] . err = distance;
+						D[i][j] . rot = rotation;		
+					}
+				}
+			}
+
+			/* For every sequence i */
+
+			#if 0
 			/* Create the text */
 			t = ( unsigned char * ) malloc ( ( total_length + 1 ) * sizeof ( unsigned char ) );
 			unsigned int j = 0;
@@ -581,6 +651,7 @@ int main(int argc, char **argv)
 				POcc[i] = NULL;
 			}
 			free ( POcc );
+			#endif
 		}
 
 		if ( d == 1 )

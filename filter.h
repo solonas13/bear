@@ -19,3 +19,4 @@
 
 void fragments ( int i, int j, int f, unsigned int m, int * mf, int * ind );
 unsigned int extract_dups ( unsigned char ** xx, unsigned int d, unsigned int * m, unsigned int f, int * mf, int * ind, int * dups );
+unsigned int extract_dups_single_str ( unsigned char * xx, unsigned int m, unsigned int f, int * mf, int * ind, int * dups );

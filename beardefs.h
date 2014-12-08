@@ -69,6 +69,8 @@ struct TPOcc
 
 typedef tuple<int,int,int> mytuple;
 
+unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
+unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
 unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
 unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch  sw, TPOcc *** POcc, unsigned int ** NOcc );
 unsigned int nw ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch  sw, double ** D );
