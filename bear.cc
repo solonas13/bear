@@ -516,7 +516,7 @@ int main(int argc, char **argv)
 
 						/* Initialise the arrays */
 						D[i][j] . err = DBL_MAX;
-						unsigned int distance = DBL_MAX;
+						unsigned int distance = ( int ) DBL_MAX;
 						unsigned int rotation = 0;
 
 						pcsa_hd ( seq[i], seq[j], sw, &rotation, &distance );
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
 
 						/* Initialise the arrays */
 						D[i][j] . err = DBL_MAX;
-						unsigned int distance = DBL_MAX;
+						unsigned int distance = ( int ) DBL_MAX;
 						unsigned int rotation = 0;
 
 						pcsa_ed ( seq[i], seq[j], sw, &rotation, &distance );
