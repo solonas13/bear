@@ -216,8 +216,8 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
     	double matching_score = 0;
 	double max_score = -DBL_MAX;
 
-	unsigned char * yr;	
-	if ( ( yr = ( unsigned char * ) calloc ( ( n + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
+	unsigned char * xr;	
+	if ( ( xr = ( unsigned char * ) calloc ( ( m + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
 	{
 	    fprintf( stderr, " Error: 't' could not be allocated!\n");
 	    return ( 0 );
@@ -255,11 +255,11 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 	    return ( 0 );
 	}
         
-	for ( r = 0; r < n; r++ )
+	for ( r = 0; r < m; r++ )
 	{
-		yr[0] = '\0';
+		xr[0] = '\0';
 
-		create_rotation ( y, r, yr );
+		create_rotation ( x, r, xr );
 
 		memset ( d0, 0, n + 1 );
 		memset ( d1, 0, n + 1 );
@@ -308,7 +308,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 						in[j] = max ( in[j - 1] + h, t0[j - 1] + g ); //i0
 						v = in[j];
 			    
-						matching_score = ( sw . matrix ? pro_delta( yr[j - 1], x[i - 1] ) : nuc_delta( yr[j - 1], x[i - 1] ) ) ;
+						matching_score = ( sw . matrix ? pro_delta( y[j - 1], xr[i - 1] ) : nuc_delta( y[j - 1], xr[i - 1] ) ) ;
 						if ( matching_score == ERR )
 							return 0;
 						w = t1[j - 1] + matching_score;
@@ -317,14 +317,6 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 			    
 						if ( i == m && j == n && t0[j] > max_score )
 						{
-							/*
-			    				if ( t0[j] == 267.5 ) 
-							{ 
-								fprintf ( stderr, "r = %d\n", r ); 
-								fprintf ( stderr, " %s\n", x ); 
-								fprintf ( stderr, " %s\n", yr ); 
-								getchar();
-							}*/
 							max_score = t0[j];
 							( * score )  = max_score;
 							( * rot ) = r;
@@ -350,7 +342,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 						in[j] = max ( in[j - 1] + h, t1[j - 1] + g ); //i1
 						v = in[j];
 			    
-						matching_score = ( sw . matrix ? pro_delta( yr[j - 1], x[i - 1] ) : nuc_delta( yr[j - 1], x[i - 1] ) ) ;
+						matching_score = ( sw . matrix ? pro_delta( y[j - 1], xr[i - 1] ) : nuc_delta( y[j - 1], xr[i - 1] ) ) ;
 						if ( matching_score == ERR )
 							return 0;
 						w = t0[j - 1] + matching_score;
@@ -358,14 +350,6 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 						t1[j] = max ( w, max ( u, v ) );
 						if ( i == m && j == n && t1[j] > max_score )
 						{
-							/*
-			    				if ( t1[j] == 267.5 ) 
-							{
-								fprintf ( stderr, "r = %d\n", r ); 
-								fprintf ( stderr, " %s\n", x ); 
-								fprintf ( stderr, " %s\n", yr ); 
-								getchar();
-							}*/
 							max_score    = t1[j];
 							( * score )  = max_score;
 							( * rot )    = r;
@@ -379,7 +363,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
 		}
 	}
 
-	free ( yr );
+	free ( xr );
 	free( d0 );
 	free( d1 );
 	free( t0 );

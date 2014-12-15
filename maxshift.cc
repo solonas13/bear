@@ -172,14 +172,13 @@ unsigned int bcf_maxshift_hd ( unsigned char * p, unsigned int m, unsigned  char
 /*
 the dynamic programming algorithm under the hamming distance model
 */
-unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D )
+unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, unsigned int l, unsigned int * ii, unsigned int * jj, unsigned int * distance )
 {
 	WORD y; 
 	WORD * M0; 		
 	WORD * M1; 		
 	unsigned int i;
 	unsigned int j;
-	unsigned int min_err;
 
 	if ( ( M0 = ( WORD * ) calloc ( ( n + 1 ) , sizeof( WORD ) ) ) == NULL )
 	{
@@ -192,12 +191,10 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 		return ( 0 );
 	}
 
-	y = ( ( WORD ) ( 1 ) << ( sw . w - 1 ) ) - 1;
+	y = ( ( WORD ) ( 1 ) << ( l - 1 ) ) - 1;
 
 	for ( i = 0; i < m + 1; i ++ ) 
 	{  
-		min_err = m - sw . w;
-
 		for( j = 0; j < n + 1 ; j++ )			
 		{
 			if( i == 0 ) continue;
@@ -209,7 +206,7 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 				case 0 :
 
 				if ( j == 0 )
-					M0[j] = ( ( WORD ) 2 << ( min ( i , sw . w ) - 1 ) ) - 1;
+					M0[j] = ( ( WORD ) 2 << ( min ( i , l ) - 1 ) ) - 1;
 				else
 					M0[j] = shiftc ( M1[j - 1], y ) | delta ( p[i - 1], t[j - 1] );
 
@@ -220,7 +217,7 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 				case 1 :
 
 				if ( j == 0 )
-					M1[j] = ( ( WORD ) 2 << ( min ( i , sw . w ) - 1 ) ) - 1;
+					M1[j] = ( ( WORD ) 2 << ( min ( i , l ) - 1 ) ) - 1;
 				else
 					M1[j] = shiftc ( M0[j - 1], y ) | delta ( p[i - 1], t[j - 1] );
 
@@ -235,15 +232,15 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 				break;	
 			} 
 
-			if ( i >= sw . w  && j >= sw . w )
+			if ( i >= l  && j >= l )
 			{
 				unsigned int err = popcount ( val );
 
-				if ( err < min_err )	
+				if ( err < ( * distance ) )	
 				{
-					min_err = err;
-					D[i - 1]  . err  = min_err;
-					D[i - 1]  . rot  = j - 1;
+					( * distance ) = err;
+					( * ii )  = i - 1;
+					( * jj )  = j - 1;
 				}
 			}
 
@@ -259,14 +256,13 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 /*
 the dynamic programming algorithm under the edit distance model
 */
-unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * D )
+unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, unsigned int l, unsigned int * ii, unsigned int * jj, unsigned int * distance )
 {
 	WORD y; 
 	WORD * M0; 		
 	WORD * M1; 		
 	unsigned int i;
 	unsigned int j;
-	unsigned int min_err;
 
 	if ( ( M0 = ( WORD * ) calloc ( ( n + 1 ) , sizeof( WORD ) ) ) == NULL )
 	{
@@ -279,12 +275,10 @@ unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  c
 		return ( 0 );
 	}
 	
-	y = ( ( WORD ) ( 1 ) << ( sw . w - 1 ) ) - 1;
+	y = ( ( WORD ) ( 1 ) << ( l - 1 ) ) - 1;
 
 	for ( i = 0; i < m + 1; i ++ ) 
 	{  
-		min_err = m - sw . w;
-
 		for( j = 0; j < n + 1 ; j++ )			
 		{
 			if( i == 0 ) continue;
@@ -296,8 +290,8 @@ unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  c
 				case 0 :
 
 				if ( j == 0 )
-					M0[j] = ( ( WORD ) ( 2 ) << ( min ( i , sw . w ) - 1 ) ) - 1;
-				else if ( i <= sw . w )
+					M0[j] = ( ( WORD ) ( 2 ) << ( min ( i , l ) - 1 ) ) - 1;
+				else if ( i <= l )
 					M0[j] = bitminmax ( shift ( M1[j] ) | 1, shift( M0[j - 1] ) | 1, shift( M1[j - 1] ) | delta ( p[i - 1], t[j - 1] ) );
 				else
 					M0[j] = bitminmax ( shiftc( M1[j] , y ) | 1, shift ( M0[j - 1] ) | 1, shiftc ( M1[j - 1], y ) | delta ( p[i - 1], t[j - 1] ) );
@@ -309,8 +303,8 @@ unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  c
 				case 1 :
 
 				if ( j == 0 )
-					M1[j] = ( ( WORD ) ( 2 ) << ( min ( i , sw . w ) - 1 ) ) - 1;
-				else if ( i <= sw . w )
+					M1[j] = ( ( WORD ) ( 2 ) << ( min ( i , l ) - 1 ) ) - 1;
+				else if ( i <= l )
 					M1[j] = bitminmax ( shift ( M0[j] ) | 1, shift( M1[j - 1] ) | 1, shift( M0[j - 1] ) | delta ( p[i - 1], t[j - 1] ) );
 				else
 					M1[j] = bitminmax ( shiftc( M0[j] , y ) | 1, shift ( M1[j - 1] ) | 1, shiftc ( M0[j - 1], y ) | delta ( p[i - 1], t[j - 1] ) );
@@ -326,14 +320,14 @@ unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  c
 				break;	
 			} 
 
-			if ( i >= sw . w )
+			if ( i >= l )
 			{
 				unsigned int err = popcount ( val );
-				if ( err < min_err )	
+				if ( err < ( * distance ) )	
 				{
-					min_err = err;
-					D[i - 1]  . err  = min_err;
-					D[i - 1]  . rot  = j - 1;
+					( * distance ) = err;
+					( * ii )  = i - 1;
+					( * jj )  = j - 1;
 				}
 			}
 

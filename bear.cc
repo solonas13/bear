@@ -478,6 +478,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		/* D[i,j] stores distance( x^{rot}_{i}, x_{j} ) = err */
 		TPOcc ** D;
 
 		int * R;
@@ -553,105 +554,6 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-
-			/* For every sequence i */
-
-			#if 0
-			/* Create the text */
-			t = ( unsigned char * ) malloc ( ( total_length + 1 ) * sizeof ( unsigned char ) );
-			unsigned int j = 0;
-			for ( i = 0; i < num_seqs; i ++ )
-			{
-				unsigned int l = strlen ( ( char * ) seq[i] );
-				memcpy ( &t[j], &seq[i][0], l );
-				j += l;
-			}
-			t[ total_length ] = '\0';
-
-			/* Allocate the occurences structure */
-			TPOcc ** POcc = NULL;
-			POcc = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) ); 
-			if( ( POcc == NULL) ) 
-			{
-				fprintf( stderr, " Error: Cannot allocate memory!\n" );
-				exit( EXIT_FAILURE );
-			}
-
-			for ( i = 0; i < num_seqs; i ++ )
-				POcc[i] == NULL;
-
-			unsigned int * NOcc;
-			NOcc = ( unsigned int * ) calloc ( num_seqs , sizeof ( unsigned int ) );
-			if( ( NOcc == NULL) )
-			{
-				fprintf( stderr, " Error: Cannot allocate memory!\n" );
-				exit( EXIT_FAILURE );
-			}
-			
-			/* Multiple Circular Approximate String Matching */
-			if ( sw . D == 0 )
-			{
-				fprintf ( stderr, " Distance model: Hamming distance with k = %d.\n", sw . k );
-				if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
-				{
-					fprintf( stderr, " Error: macsmf_ms() failed!\n" );
-					exit(EXIT_FAILURE);
-				}
-			}
-			else
-			{
-				fprintf ( stderr, " Distance model: edit distance with k = %d.\n", sw . k );
-				if ( ! ( macsmf_ed ( seq, t, sw, &POcc, &NOcc ) ) )
-				{
-					fprintf( stderr, " Error: macsmf_ms() failed!\n" );
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			D = ( TPOcc ** ) calloc ( num_seqs , sizeof ( TPOcc * ) );
-			if( ( D == NULL) )
-			{
-				fprintf( stderr, " Error: Cannot allocate memory!\n" );
-				exit( EXIT_FAILURE );
-			}
-
-			for ( i = 0; i < num_seqs; i ++ )
-			{
-				D[i] = ( TPOcc * ) calloc ( num_seqs , sizeof ( TPOcc ) );
-				if( ( D[i] == NULL) )
-				{
-					fprintf( stderr, " Error: Cannot allocate memory!\n" );
-					exit( EXIT_FAILURE );
-				}
-
-				/* Initialise the array */
-				for ( j = 0; j < num_seqs; j++ )
-					D[i][j] . err = INT_MAX;
-			}
-
-			for ( i = 0; i < num_seqs; i ++ )
-			{
-				for ( j = 0; j < NOcc[i]; j ++ )
-				{
-					int l = binSearch( POcc[i][j] . pos, pat, num_seqs );
-					if ( l >= 0 && D[i][l] . err > POcc[i][j] . err )	
-					{
-						D[i][l] . err = POcc[i][j] . err;
-						D[i][l] . pos = POcc[i][j] . pos;
-						D[i][l] . rot = POcc[i][j] . rot;
-					}
-				}
-			}
-
-			free ( t );
-			free ( NOcc );
-			for ( i = 0; i < num_seqs; i ++ )
-			{
-				free ( POcc[i] );
-				POcc[i] = NULL;
-			}
-			free ( POcc );
-			#endif
 		}
 
 		if ( d == 1 )
@@ -662,6 +564,7 @@ int main(int argc, char **argv)
 				fprintf( stderr, " Error: Cannot allocate memory!\n" );
 				exit( EXIT_FAILURE );
 			}
+
 			if ( sw . D == 0 )
 			{
 				fprintf ( stderr, " Distance model: Hamming distance with w = %d and k = %d.\n", sw . w, sw . k );
@@ -682,66 +585,47 @@ int main(int argc, char **argv)
 					exit( EXIT_FAILURE );
 				}
 
-				for ( int ii = 0; ii < num_seqs; ii ++ )
+				unsigned char * xiw;
+				xiw = ( unsigned char * ) calloc (  m + sw . w, sizeof( unsigned char ) );
+				memmove( &xiw[0], seq[i], m );
+				memmove( &xiw[m], seq[i], sw . w - 1 );
+				xiw[m + sw . w - 1] = '\0';
+				unsigned int mm = m + sw . w - 1;
+
+				for ( int j = 0; j < num_seqs; j ++ )
 				{
-					if ( i == ii ) continue;
-
-					TPOcc * M;
-
-					/* Each row M[ii] stores the coordinates M . rot of the best match of length sw . w with every other sequence ii */
-					if ( ( M = ( TPOcc * ) calloc ( ( m ) , sizeof( TPOcc ) ) ) == NULL )
-					{
-						fprintf( stderr, " Error: M could not be allocated!\n");
-						exit ( 1 );
-					}
+					if ( i == j ) continue;
 
 					/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
-					unsigned int n = strlen ( ( char * ) seq[ii] );
-					unsigned char * xjw;
-					xjw = ( unsigned char * ) calloc (  n + sw . w, sizeof( unsigned char ) );
-					memmove( &xjw[0], seq[ii], n );
-					memmove( &xjw[n], seq[ii], sw . w - 1 );
-					xjw[n + sw . w - 1] = '\0';
-					unsigned int nn = n + sw . w - 1;
+					unsigned int n = strlen ( ( char * ) seq[j] );
 
-					/* Initialise the arrays */
-					for ( int jj = 0; jj < num_seqs; jj++ )
-						M[jj] . err = m - 1;
-					D[i][ii] . err = m  - 1;
+					D[i][j] . err = m - 1;
+					unsigned int ii, jj;
+					unsigned int distance = ( int ) DBL_MAX;
+					unsigned int l = min ( sw . w, n );
 
 					if ( sw . D == 0 )
-						bcf_maxshift_hd_ls ( seq[i], m, xjw, nn, sw, M );
+						bcf_maxshift_hd_ls ( xiw, m, seq[j], n, l, &ii, &jj, &distance );
 					else
-						bcf_maxshift_ed_ls ( seq[i], m, xjw, nn, sw, M );
+						bcf_maxshift_ed_ls ( xiw, m, seq[j], n, l, &ii, &jj, &distance );
 
-					unsigned int min_dist = sw . w;
+					D[i][j] . err = distance;
 
-					for ( int jj = sw . w - 1; jj < m; jj ++ )
+					/* If ii >= jj then it is easy to find the rotation: ii - jj */
+					if ( ii >= jj )
 					{
-						if ( min_dist > M[jj] . err )
-						{
-							int iii = jj % m;
-							int jjj = M[jj] . rot % n;
-
-							min_dist = M[jj] . err;
-							D[i][ii] . err = M[jj] . err;
-
-							if ( iii >= jjj )
-							{
-								D[i][ii] . rot = iii - jjj;
-							}
-							else
-							{
-								int a = jjj - iii;
-								int b = m - iii - 1;
-								int c = min ( a, b );
-								D[i][ii] . rot = m - c;		
-							}
-						}
+						D[i][j] . rot = ii - jj;
 					}
-					free ( xjw );
-					free ( M );
+					/* Otherwise we would need to shift jj - ii or as many letters as we have on the right of position i - sw. w + 1 */
+					else
+					{
+						int a = jj - ii;
+						int b = m - ii - 1;
+						int c = min ( a, b );
+						D[i][j] . rot = m - c;		
+					}
 				}
+				free ( xiw );
 			}	
 		}
 
@@ -780,64 +664,42 @@ int main(int argc, char **argv)
 						exit( EXIT_FAILURE );
 					}
 
+					unsigned char * xx;
+					xx = ( unsigned char * ) calloc (  m + m, sizeof( unsigned char ) );
+					memmove( &xx[0], seq[i], m );
+					memmove( &xx[m], seq[i], m - 1 );
+					xx[m + m - 1] = '\0';
+					unsigned int mm = m + m - 1;
+
 					for ( int j = 0; j < num_seqs; j ++ )
 					{
 						if ( i == j ) continue;
-
-						TPOcc * M;
-
-						/* Each row M[ii] stores the coordinates M . rot of the best match of length sw . w with every other sequence j */
-						if ( ( M = ( TPOcc * ) calloc ( ( m ) , sizeof( TPOcc ) ) ) == NULL )
-						{
-							fprintf( stderr, " Error: M could not be allocated!\n");
-							exit ( 1 );
-						}
-
-						/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
 						unsigned int n = strlen ( ( char * ) seq[j] );
-						unsigned char * xjw;
-						xjw = ( unsigned char * ) calloc (  n + n, sizeof( unsigned char ) );
-						memmove( &xjw[0], seq[j], n );
-						memmove( &xjw[n], seq[j], n - 1 );
-						xjw[n + n - 1] = '\0';
-						unsigned int nn = n + n - 1;
-
-						/* Initialise the arrays */
-						for ( int jj = 0; jj < num_seqs; jj++ )
-							M[jj] . err = -DBL_MAX;
 
 						D[i][j] . err = -DBL_MAX;
+						unsigned int ii, jj;
+						double similarity = -DBL_MAX;
 
-						sw_ls ( seq[i], m, xjw, nn, sw, M );
+						sw_ls ( xx, mm, seq[j], n, sw, &ii, &jj, &similarity );
 
-						double max_sim = -DBL_MAX;
+						D[i][j] . err = similarity;
 
-						for ( int jj = 0; jj < m; jj ++ )
+						/* If ii >= jj then it is easy to find the rotation: ii - jj */
+						if ( ii >= jj )
 						{
-							if ( max_sim < M[jj] . err )
-							{
-								int iii = jj % m;
-								int jjj = M[jj] . rot % n;
-
-								max_sim = M[jj] . err;
-								D[i][j] . err = M[jj] . err;
-
-								if ( iii >= jjj )
-								{
-									D[i][j] . rot = iii - jjj;
-								}
-								else
-								{
-									int a = jjj - iii;
-									int b = m - iii - 1;
-									int c = min ( a, b );
-									D[i][j] . rot = m - c;		
-								}
-							}
+							D[i][j] . rot = ii - jj;
 						}
-						free ( xjw );
-						free ( M );
+						/* Otherwise we would need to shift jj - ii or as many letters as we have on the right of position i - sw. w + 1 */
+						else
+						{
+							int a = jj - ii;
+							int b = m - ii - 1;
+							int c = min ( a, b );
+							D[i][j] . rot = m - c;		
+						}
+
 					}
+					free ( xx );
 				}
 			}
 			else
@@ -874,7 +736,7 @@ int main(int argc, char **argv)
 						cyc_nw_ls ( seq[i], m, seq[j], n, sw, &score, &rot );
 						
 						D[i][j] . err = score;
-						D[j][i] . rot = rot;		
+						D[i][j] . rot = rot;		
 					}
 				}
 			}	

@@ -124,7 +124,7 @@ unsigned int sw ( unsigned char * p, unsigned int m, unsigned  char * t, unsigne
 /*
 The Smith-Waterman algorithm with affine penalty scores in linear space
 */
-unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, TPOcc * M )
+unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, struct TSwitch sw, unsigned int * ii, unsigned int * jj, double * similarity )
 {
 
  	int i;
@@ -136,7 +136,6 @@ unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsi
         double * in;
     	double g = sw . O;
     	double h = sw . E;
-    	double matching_score = 0;
         
         if ( ( d0 = ( double * ) calloc ( ( n + 1 ) , sizeof ( double ) ) ) == NULL )
         {
@@ -166,10 +165,9 @@ unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsi
         
     	for( i = 1; i < m + 1; i++ )
     	{
-                double max_score = 0;
         	for( j = 1; j < n + 1; j++ )
         	{
-                    double u, v, w;
+                    double u, v, w, matching_score;
                     
                     switch ( i % 2 ) {
                         
@@ -188,12 +186,11 @@ unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsi
 
                             t0[j] = max ( 0, max ( w, max ( u, v ) ) );
                             
-                            if ( t0[j] > max_score )
+                            if ( t0[j] > ( * similarity ) )
                             {
-                                    max_score = t0[j];
-                                    M[i - 1] . err  = max_score;
-                                    M[i - 1] . rot = j - 1;
-                                    
+                                    ( * similarity ) = t0[j];
+                                    ( * ii ) = i - 1;
+                                    ( * jj ) = j - 1;
                             }
                             
                             break;
@@ -213,12 +210,11 @@ unsigned int sw_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsi
 
                             t1[j] = max ( 0, max ( w, max ( u, v ) ) );
                             
-                            if ( t1[j] > max_score )
+                            if ( t1[j] > ( * similarity ) )
                             {
-                                    max_score = t1[j];
-                                    M[i - 1] . err  = max_score;
-                                    M[i - 1] . rot = j - 1;
-                                    
+                                    ( * similarity ) = t1[j];
+                                    ( * ii ) = i - 1;
+                                    ( * jj ) = j - 1;
                             }                   
                             
                             break;
