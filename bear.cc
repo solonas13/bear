@@ -602,7 +602,7 @@ int main(int argc, char **argv)
 					D[i][j] . err = m - 1;
 					unsigned int ii, jj;
 					unsigned int distance = ( int ) DBL_MAX;
-					unsigned int l = min ( sw . w, n );
+					unsigned int l = min ( sw . w, m );
 
 					if ( sw . D == 0 )
 						bcf_maxshift_hd_ls ( xiw, m, seq[j], n, l, &ii, &jj, &distance );
