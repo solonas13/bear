@@ -218,7 +218,7 @@ unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 			/* the right part*/
 			if ( r > 0 )
 			{
-				memset ( Sr, 0, r ); 
+				memset ( Sr, 0, sizeof ( int ) * mm ); 
 				edit_distance ( &xx[pxx], r, &y[pt], exr, sw, D );
 				r_errors_vec  ( D, r, exr, sw, Sr );
 			}
@@ -226,8 +226,8 @@ unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 			/* the left part */
 			if ( l > 0 )
 			{
-				memset ( Sl, 0, l ); 
-				memset ( Slr, 0, l ); 
+				memset ( Sl, 0, sizeof ( int ) * mm ); 
+				memset ( Slr, 0, sizeof ( int ) * mm ); 
 				edit_distance ( &xxr[pxxr], l, &yr[ptr], exl, sw, D );
 				r_errors_vec  ( D, l, exl, sw, Slr );
 
@@ -235,7 +235,7 @@ unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 					Sl[l - j - 1] = Slr[j];
 			}
 
-			memset ( M, 0, mm ); 
+			memset ( M, 0, sizeof ( int ) * mm ); 
 			unsigned int a = 0;
 			unsigned int b = 0;
 
@@ -484,10 +484,11 @@ unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 			int pxxr = mm - ind[jj];
 			int ptr = iir + mf[jj];
 
+
 			/* the right part*/
 			if ( r > 0 )
 			{
-				memset ( Sr, 0, r ); 
+				memset ( Sr, 0, mm * sizeof ( int ) ); 
 
 				/* If there is not text on the right to extend */
 				if ( exr == 0 )
@@ -504,8 +505,8 @@ unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 			/* the left part */
 			if ( l > 0 )
 			{
-				memset ( Sl, 0, l ); 
-				memset ( Slr, 0, l ); 
+				memset ( Sl, 0, mm * sizeof( int ) ); 
+				memset ( Slr, 0, mm * sizeof( int ) ); 
 
 				/* If there is not text on the left to extend */
 				if ( exl == 0 )
@@ -524,7 +525,7 @@ unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch sw, u
 				}
 			}
 
-			memset ( M, 0, mm ); 
+			memset ( M, 0, sizeof ( int ) * mm ); 
 			unsigned int a = 0;
 			unsigned int b = 0;
 
