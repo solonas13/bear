@@ -605,9 +605,9 @@ int main(int argc, char **argv)
 					unsigned int l = min ( sw . w, m );
 
 					if ( sw . D == 0 )
-						bcf_maxshift_hd_ls ( xiw, m, seq[j], n, l, &ii, &jj, &distance );
+						bcf_maxshift_hd_ls ( xiw, mm, seq[j], n, l, &ii, &jj, &distance );
 					else
-						bcf_maxshift_ed_ls ( xiw, m, seq[j], n, l, &ii, &jj, &distance );
+						bcf_maxshift_ed_ls ( xiw, mm, seq[j], n, l, &ii, &jj, &distance );
 
 					D[i][j] . err = distance;
 
