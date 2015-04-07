@@ -52,6 +52,8 @@ struct TSwitch
    double         	min_sim;
    unsigned int         w;
    unsigned int		T;	
+   unsigned int         b;
+   unsigned int         q;
  };
 
 struct TPat
@@ -68,6 +70,11 @@ struct TPOcc
  };
 
 typedef tuple<int,int,int> mytuple;
+
+typedef int32_t INT;
+unsigned int LCParray ( unsigned char *text, INT n, INT * SA, INT * ISA, INT * LCP );
+void partitioning ( INT i, INT j, INT f, INT m, INT * mf, INT * ind );
+unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
 
 unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
 unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );

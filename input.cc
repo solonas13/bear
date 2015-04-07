@@ -27,6 +27,8 @@
 static struct option long_options[] =
  {
    { "alphabet",                required_argument, NULL, 'a' },
+   { "num-blocks",              required_argument, NULL, 'b' },
+   { "q-length",                required_argument, NULL, 'q' },
    { "seqs-file",               required_argument, NULL, 'p' },
    { "ref-file",                required_argument, NULL, 't' },
    { "output-file",             required_argument, NULL, 'o' },
@@ -74,9 +76,11 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> E                              = -1.0;
    sw -> R                              = 0.10;
    sw -> d                              = 0;
+   sw -> b                              = 10;
+   sw -> q                              = 5;
    args = 0;
 
-   while ( ( opt = getopt_long ( argc, argv, "a:p:t:o:k:D:A:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
+   while ( ( opt = getopt_long ( argc, argv, "a:b:q:p:t:o:k:D:A:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
     {
       switch ( opt )
        {
@@ -105,6 +109,24 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
               return ( 0 );
             }
            sw -> k = val;
+           break;
+
+          case 'b':
+           val = strtol ( optarg, &ep, 10 );
+           if ( optarg == ep )
+            {
+              return ( 0 );
+            }
+           sw -> b = val;
+           break;
+
+          case 'q':
+           val = strtol ( optarg, &ep, 10 );
+           if ( optarg == ep )
+            {
+              return ( 0 );
+            }
+           sw -> q = val;
            break;
 
          case 'd':
@@ -222,7 +244,8 @@ void usage ( void )
    fprintf ( stdout, "  -o, --output-file         <str>     Output filename.\n" );
    fprintf ( stdout, "  -d, --cmp-mod             <int>     Comparison model (0 for small pairwise distance;\n"
                      "                                      or 1 for pairwise distance of fixed-length factors;\n"
-                     "                                      or 2 for affine gap penalty with sub matrices).\n" );
+                     "                                      or 2 for affine gap penalty with sub matrices).\n"
+                     "                                      or 3 for blockwise q-gram distance).\n" );
    fprintf ( stdout, " Optional:\n" );
    fprintf ( stdout, "  -k, --max-dist            <int>     Maximum distance between pairs of sequences to be\n"
                      "                                      used with option `-d 0' or `-d 1' (default: 10). \n" );
@@ -236,6 +259,10 @@ void usage ( void )
    fprintf ( stdout, "  -E, --ext-gap             <dbl>     Affine gap extension penalty (default: -1.0).\n" );
    fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score based on\n"
                      "                                      the sub matrix used (default: 0.1).\n" );
+   fprintf ( stdout, "  -b, --num-blocks          <int>     Number of blocks to partition the sequences\n"
+                     "                                      used with option `-d 3' (default: 10). \n" );
+   fprintf ( stdout, "  -q, --q-length            <int>     Q-gram length to be used with option `-d 3'\n"
+                     "                                      (default: 5). \n" );
    fprintf ( stdout, "  -T, --num-threads         <int>     Number of threads to be used (default: 1).\n" );
    fprintf ( stdout, "  -l, --outliers-file       <str>     Outliers filename  ---  outputs a file with the\n"
                      "                                      sequences which were not rotated. \n" );

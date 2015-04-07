@@ -2,13 +2,13 @@ MF=     Makefile
  
 CC=     g++
  
-CFLAGS= -g -fopenmp -D_USE_OMP -D_USE_MPFR -msse4.2 -O3 -fomit-frame-pointer -funroll-loops  
+CFLAGS= -g -fopenmp -D_USE_OMP -msse4.2 -O3 -fomit-frame-pointer -funroll-loops  
  
-LFLAGS= -std=c++11 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libdatrie/include -L ./libdatrie/lib -ldatrie -Wl,-rpath=$(PWD)/libdatrie/lib -lz 
+LFLAGS= -std=c++11 -lahocorasick -I ./ahocorasick -L ./ahocorasick -I ./libdatrie/include -L ./libdatrie/lib -ldatrie -Wl,-rpath=$(PWD)/libdatrie/lib -lz -DNDEBUG -I ./libsdsl/include/ -L ./libsdsl/lib/ -lsdsl -ldivsufsort -ldivsufsort64 -Wl,-rpath=$(PWD)/libsdsl/lib
  
 EXE=    bear
  
-SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc sw.cc nw.cc utils.cc matrices.cc
+SRC=    bear.cc input.cc macsm.cc filter.cc aca.cc maxshift.cc upgma.cc sw.cc nw.cc utils.cc matrices.cc csc.cc
  
 HD=     beardefs.h globals.h filter.h aca.h EDNAFULL.h EBLOSUM62.h Makefile
  
@@ -39,3 +39,5 @@ clean-all:
 	rm -r ahocorasick
 	rm -r libdatrie
 	rm -r libdatrie-0.2.8 
+	rm -r libsdsl
+	rm -r sdsl-lite

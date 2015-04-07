@@ -29,7 +29,6 @@
 
 int main(int argc, char **argv)
 {
-
 	struct TSwitch  sw;
 
 	FILE *          in_fd;                  // the input file descriptor
@@ -47,7 +46,7 @@ int main(int argc, char **argv)
         unsigned char *  t      = NULL;         // the text in memory
 	char *          alphabet;               // the alphabet
 	unsigned int    i, j;
-	unsigned int    d;	
+	unsigned int    d, q, b;	
 	unsigned int    total_length = 0;
 
 	/* Decodes the arguments */
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
                 }
 
 		d       = sw . d;
-		if ( d > 2 )	
+		if ( d > 3 )	
 		{
                 	usage ();
 			return ( 1 );
@@ -742,6 +741,60 @@ int main(int argc, char **argv)
 			}	
 		}
 
+		if ( d == 3 )
+		{
+			fprintf ( stderr, " Comparison model: blockwise q-gram distance.\n" );
+			if ( ( D = ( TPOcc ** ) calloc ( ( num_seqs ) , sizeof( TPOcc * ) ) ) == NULL )
+			{
+				fprintf( stderr, " Error: Cannot allocate memory!\n" );
+				exit( EXIT_FAILURE );
+			}
+
+			fprintf ( stderr, " Number of blocks b = %d and q = %d.\n", sw . b, sw . q );
+
+			/* For every sequence i */
+			#pragma omp parallel for
+			for ( int i = 0; i < num_seqs; i++ )
+			{
+				unsigned int m = strlen ( ( char * ) seq[i] );
+				if ( ( D[i] = ( TPOcc * ) calloc ( ( num_seqs ) , sizeof( TPOcc ) ) ) == NULL )
+				{
+					fprintf( stderr, " Error: Cannot allocate memory!\n" );
+					exit( EXIT_FAILURE );
+				}
+
+				for ( int j = 0; j < num_seqs; j ++ )
+				{
+					if ( i == j ) continue;
+
+					unsigned int n = strlen ( ( char * ) seq[j] );
+					if ( sw . b < 1 || sw . b > m - sw . q + 1  || sw . b > n - sw . q + 1 )
+					{
+						fprintf( stderr, " Error: Illegal number of blocks.\n" );
+						exit ( 1 );
+					}
+
+					if ( sw . q >= m || sw . q >= n )
+					{
+						fprintf( stderr, " Error: Illegal q-gram length.\n" );
+						exit ( 1 );
+					}
+
+					sw . k = n + m;
+					D[i][j] . err = n + m;
+					unsigned int ii, jj;
+					unsigned int distance = ( int ) DBL_MAX;
+					unsigned int rotation = 0;
+
+					circular_sequence_comparison ( seq[i], seq[j], sw, &rotation, &distance );
+
+					D[i][j] . err = distance;
+					D[i][j] . rot = rotation;
+
+				}
+			}	
+		}
+
 		#if 0
 		for ( int i = 0; i < num_seqs; i ++ )
 		{
@@ -763,7 +816,7 @@ int main(int argc, char **argv)
 		#endif
 
 		fprintf ( stderr, " Starting the clustering\n" );
-		if ( d == 0 || d == 1 )
+		if ( d == 0 || d == 1 || d == 3 )
 			upgma_dist ( D, num_seqs, sw, R, seq );
 		if ( d == 2 )
 			upgma_sim ( D, num_seqs, sw, R, seq );
