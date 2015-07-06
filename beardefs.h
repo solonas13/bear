@@ -46,13 +46,13 @@ struct TSwitch
    unsigned int         D;
    unsigned int         A;
    unsigned int         d;
-   double         	O;
+   double	        O;
    double	        E;
-   double         	R;
-   double         	P;
-   double         	min_sim;
+   double	        R;
+   double	        P;
+   double	        min_sim;
    unsigned int         w;
-   unsigned int		T;	
+   unsigned int         T;
    unsigned int         b;
    unsigned int         q;
  };

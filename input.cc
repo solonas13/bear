@@ -31,20 +31,20 @@ static struct option long_options[] =
    { "max-gap",                 required_argument, NULL, 'g' },
    { "seqs-file",               required_argument, NULL, 'p' },
    { "output-file",             required_argument, NULL, 'o' },
-   { "block-length",            optional_argument, NULL, 'b' },
-   { "q-length",                optional_argument, NULL, 'q' },
-   { "ref-file",                optional_argument, NULL, 't' },
-   { "outliers-file",           optional_argument, NULL, 'l' },
-   { "max-dist",                optional_argument, NULL, 'k' },
-   { "distance",                optional_argument, NULL, 'D' },
-   { "aln-type",                optional_argument, NULL, 'A' },
-   { "fac-len",                 optional_argument, NULL, 'w' },
-   { "sim-rat",                 optional_argument, NULL, 'R' },
-   { "opn-gap",                 optional_argument, NULL, 'O' },
-   { "ext-gap",                 optional_argument, NULL, 'E' },
-   { "rot-file",                optional_argument, NULL, 'r' },
-   { "num-threads",             optional_argument, NULL, 'T' },
-   { "percent-refine",          optional_argument, NULL, 'P' },
+   { "block-length",            required_argument, NULL, 'b' },
+   { "q-length",                required_argument, NULL, 'q' },
+   { "ref-file",                required_argument, NULL, 't' },
+   { "outliers-file",           required_argument, NULL, 'l' },
+   { "max-dist",                required_argument, NULL, 'k' },
+   { "distance",                required_argument, NULL, 'D' },
+   { "aln-type",                required_argument, NULL, 'A' },
+   { "fac-len",                 required_argument, NULL, 'w' },
+   { "sim-rat",                 required_argument, NULL, 'R' },
+   { "opn-gap",                 required_argument, NULL, 'O' },
+   { "ext-gap",                 required_argument, NULL, 'E' },
+   { "rot-file",                required_argument, NULL, 'r' },
+   { "num-threads",             required_argument, NULL, 'T' },
+   { "percent-refine",          required_argument, NULL, 'P' },
    { "help",                    no_argument,       NULL, 'h' },
    { NULL,                      0,                 NULL, 0   }
  };
@@ -82,8 +82,9 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> q                              = 5;
    args = 0;
 
-   while ( ( opt = getopt_long ( argc, argv, "a:b:q:p:t:o:k:D:A:T:w:r:d:l:O:E:R:P:h", long_options, &oi ) ) != - 1 )
+   while ( ( opt = getopt_long ( argc, argv, "a:d:g:p:o:b:q:t:l:k:D:A:w:R:O:E:r:T:P:h", long_options, &oi ) ) != -1 )
     {
+
       switch ( opt )
        {
          case 'a':
