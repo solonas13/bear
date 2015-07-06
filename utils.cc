@@ -52,13 +52,20 @@ TPOcc * unique ( TPOcc * first, TPOcc * last )
   	return ( result );
 }
 
-unsigned int create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation )
+void create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation )
 {
 	unsigned int m = strlen ( ( char * ) x );
 	memmove ( &rotation[0], &x[offset], m - offset );
 	memmove ( &rotation[m - offset], &x[0], offset );
 	rotation[m] = '\0';
-	return 1;
+}
+
+void create_backward_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation )
+{
+	unsigned int m = strlen ( ( char * ) x );
+	memmove ( &rotation[0], &x[m - offset], offset );
+	memmove ( &rotation[offset], &x[0], m - offset );
+	rotation[m] = '\0';
 }
 
 int binSearch( int value, TPat * array, int num )

@@ -36,6 +36,7 @@ unsigned int nw ( unsigned char * p, unsigned int m, unsigned char * t, unsigned
 	double g = sw . O;
         double h = sw . E;
 	double matching_score = 0;
+	init_substitution_score_tables ();
 
 	D = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
 	for ( int j = 0; j < m + 1; j ++ )
@@ -110,6 +111,7 @@ unsigned int nw_wbt ( unsigned char * p, unsigned int m, unsigned char * t, unsi
 	double g = sw . O;
         double h = sw . E;
 	double matching_score = 0;
+	init_substitution_score_tables ();
 
 	D = ( double ** ) calloc ( m + 1,  sizeof ( double * ) );
 	for ( int j = 0; j < m + 1; j ++ )
@@ -215,6 +217,7 @@ unsigned int cyc_nw_ls ( unsigned char * x, unsigned int m, unsigned char * y, u
     	double h = sw . E;
     	double matching_score = 0;
 	double max_score = -DBL_MAX;
+	init_substitution_score_tables ();
 
 	unsigned char * xr;	
 	if ( ( xr = ( unsigned char * ) calloc ( ( m + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
@@ -383,6 +386,7 @@ unsigned int cyc_nw ( unsigned char * x, unsigned int m, unsigned char * y, unsi
         double h = sw . E;
 	double matching_score = 0;
 	double max_score = -DBL_MAX;
+	init_substitution_score_tables ();
 
 	unsigned char * yr;	
 	if ( ( yr = ( unsigned char * ) calloc ( ( n + 1 ) , sizeof ( unsigned char ) ) ) == NULL )

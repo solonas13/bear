@@ -20,3 +20,5 @@ extern int gMax_alloc_matches;
 extern int gMatches;
 extern int * gF;
 extern int * gP;
+extern unsigned int EDNA[];
+extern unsigned int BLOSUM[];

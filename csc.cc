@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 #include <getopt.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -113,7 +114,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
         }
 
 	/* Ranking of q-grams and creation of x' and y' */
-	int b = sw . b;
+	int b = m / sw . b;
 	int q = sw . q;
 
 	//fprintf(stderr, " %d %d.\n", b, q );
@@ -271,18 +272,34 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 			min_dist = dist;
 		}
 	}
-	( * distance ) = min_dist; 
+
+	//refine
+	if ( sw . P > 0 )
+	{
+		unsigned char * rot_str;
+		if ( ( rot_str = ( unsigned char * ) calloc ( m + 1, sizeof ( unsigned char ) ) ) == NULL )
+		{
+			fprintf ( stderr, " Error: Could not allocate rot_str!\n" );
+			return ( 1 );
+		}
+		rot_str[m] = '\0';
+		create_rotation ( x, rot, rot_str );
+		rot = rot + refine ( rot_str, m, y, n, sw );
+		free ( rot_str );
+	}
+
+	( * distance ) = min_dist;
 	( * rotation ) = rot;
 
 	/* De-allocate the memory */	
 	free ( D );
 	free ( xp );
-	free ( yp );	
+	free ( yp );
 	free ( xind );
-	free ( xmf );	
+	free ( xmf );
 	free ( yind );
-	free ( ymf );	
-	free ( xxy );	
+	free ( ymf );
+	free ( xxy );
 	free ( invSA );
 	free ( SA );
 	free ( LCP );
@@ -309,4 +326,194 @@ void partitioning ( INT i, INT j, INT f, INT m, INT * mf, INT * ind )
 	}
 	ind[j + i * f] = first;
 	mf[j + i * f] = last - first + 1;
+}
+
+int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw )
+{
+    init_substitution_score_tables ();
+
+    //create X and Y prine (Xp, Yp)
+    unsigned int sectionLength = ( unsigned int ) floor ( ( sw . P / 100 ) * std::min ( m, n ) );
+    unsigned int sl3 = sectionLength * 3;
+    unsigned char repeat_char = DEL;
+    unsigned char * Xp, * Yp;
+    if ( ( Xp = ( unsigned char * ) calloc ( sl3 + 1, sizeof ( unsigned char ) ) ) == NULL ) {
+	fprintf ( stderr, " Error: could not allocate Xp.\n" );
+	return 1;
+    }
+    if ( ( Yp = ( unsigned char * ) calloc ( sl3 + 1, sizeof ( unsigned char ) ) ) == NULL ) {
+	fprintf ( stderr, " Error: could not allocate Yp.\n" );
+	return 1;
+    }
+    
+    //make Xp and Yp contain prefix, repeat_char middle and suffix e.g. AATGCA$$$$$GGGAT
+    memcpy ( Xp, x, sectionLength * sizeof ( unsigned char ) );
+    memset ( Xp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
+    memcpy ( Xp + 2 * sectionLength * sizeof ( unsigned char ), &x[ m - sectionLength ], sectionLength * sizeof ( unsigned char ) );
+    Xp[3 * sectionLength] = '\0';
+    memcpy ( Yp, y, sectionLength * sizeof ( unsigned char ) );
+    memset ( Yp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
+    memcpy ( Yp + 2 * sectionLength * sizeof ( unsigned char ), &y[ n - sectionLength ], sectionLength * sizeof ( unsigned char ) );
+    Yp[3 * sectionLength] = '\0';
+
+    unsigned int i, j, r, rotation;
+    double max_score = -DBL_MAX;
+
+    double * d0;
+    double * d1;
+    double * t0;
+    double * t1;
+    double * in;
+    if ( ( d0 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
+    {
+	fprintf ( stderr, " Error: 'd0' could not be allocated!\n");
+	return 0;
+    }
+    if ( ( d1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL  )
+    {
+	fprintf ( stderr, " Error: 'd1' could not be allocated!\n");
+	return 0;
+    }
+    if ( ( t0 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
+    {
+	fprintf ( stderr, " Error: 't0' could not be allocated!\n");
+	return 0;
+    }
+    if ( ( t1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
+    {
+	fprintf ( stderr, " Error: 't1' could not be allocated!\n");
+	return 0;
+    }
+    if ( ( in = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
+    {
+	fprintf ( stderr, " Error: 'in' could not be allocated!\n");
+	return 0;
+    }
+
+    unsigned char * yr;
+    if ( ( yr = ( unsigned char * ) calloc ( ( sl3 + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
+    {
+	fprintf( stderr, " Error: 'yr' could not be allocated!\n");
+	return 0;
+    }
+
+    for ( r = 0; r < sl3; r++ )
+    {
+        if ( r >= sectionLength && r < 2 * sectionLength ) {
+	    continue;
+	}
+
+	yr[0] = '\0';
+
+	create_rotation ( Xp, r, yr );
+
+	memset ( d0, 0, sizeof ( double ) * sl3 + 1 );
+	memset ( d1, 0, sizeof ( double ) * sl3 + 1 );
+	memset ( t0, 0, sizeof ( double ) * sl3 + 1 );
+	memset ( t1, 0, sizeof ( double ) * sl3 + 1 );
+	memset ( in, 0, sizeof ( double ) * sl3 + 1 );
+
+	for ( j = 0; j < sl3 + 1; j++ )
+	{
+	    d0[j] = -DBL_MAX;
+	    in[j] = -DBL_MAX;
+	}
+
+	t0[0] = 0;
+	t0[1] = sw . O;
+	t1[0] = sw . O; 
+
+	for ( j = 2; j < sl3 + 1; j++ ) {
+	    t0[j] = t0[j - 1] + sw . E;
+	}
+
+	for ( i = 1; i < sl3 + 1; i++ )
+	{
+	    for ( j = 0; j < sl3 + 1; j++ )
+	    {
+		double u, v, w;
+
+		switch ( i % 2 ) 
+		{
+
+		  case 0:
+
+		    if ( j == 0 )
+		    {
+			d0[j] = -DBL_MAX;
+			in[j] = -DBL_MAX;
+			if ( i >= 2 ) {
+			    t0[0] = t1[0] + sw . E;
+			}
+		    }
+		    else 
+		    {
+			d0[j] = std::max ( d1[j] + sw . E, t1[j] + sw . O );
+			u = d0[j];
+
+			in[j] = std::max ( in[j - 1] + sw . E, t0[j - 1] + sw . O ); //i0
+			v = in[j];
+
+			w = t1[j - 1] + (double) ( ( sw . matrix ) ? pro_delta ( Yp[j - 1], yr[i - 1] ) : nuc_delta ( Yp[j - 1], yr[i - 1] ) );
+
+			t0[j] = std::max ( w, std::max ( u, v ) );
+
+			if ( i == sl3 && j == sl3 && t0[j] > max_score )
+			{
+			    max_score = t0[j];
+			    rotation  = ( r >= sectionLength ) ? -( sl3 - r ) : r;
+			}
+		    }
+
+		    break;
+
+		  case 1:
+
+		    if ( j == 0 )
+		    {
+			d1[j] = -DBL_MAX;
+			in[j] = -DBL_MAX;
+			if ( i >= 2 ) {
+			    t1[0] = t0[0] + sw . E;
+			}
+		    }	
+		    else 
+		    {
+			d1[j] = std::max ( d0[j] + sw . E, t0[j] + sw . O );
+			u = d1[j];
+
+			in[j] = std::max ( in[j - 1] + sw . E, t1[j - 1] + sw . O ); //i1
+			v = in[j];
+
+			w = t0[j - 1] + (double) ( ( sw . matrix ) ? pro_delta ( Yp[j - 1], yr[i - 1] ) : nuc_delta ( Yp[j - 1], yr[i - 1] ) );
+
+			t1[j] = std::max ( w, std::max ( u, v ) );
+
+			if ( i == sl3 && j == sl3 && t1[j] > max_score )
+			{
+			    max_score = t1[j];
+			    rotation  = ( r >= sectionLength ) ? -( sl3 - r ) : r;
+			}
+		    }
+
+		    break;
+
+		}
+
+	    }
+
+	}
+
+    }
+
+    free ( Xp );
+    free ( Yp );
+    free ( yr );
+    free( d0 );
+    free( d1 );
+    free( t0 );
+    free( t1 );
+    free( in );
+
+    return rotation;
 }

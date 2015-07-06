@@ -27,23 +27,24 @@
 static struct option long_options[] =
  {
    { "alphabet",                required_argument, NULL, 'a' },
-   { "num-blocks",              required_argument, NULL, 'b' },
-   { "q-length",                required_argument, NULL, 'q' },
-   { "seqs-file",               required_argument, NULL, 'p' },
-   { "ref-file",                required_argument, NULL, 't' },
-   { "output-file",             required_argument, NULL, 'o' },
-   { "outliers-file",           required_argument, NULL, 'l' },
-   { "max-dist",                required_argument, NULL, 'k' },
-   { "distance",                required_argument, NULL, 'D' },
-   { "aln-type",                required_argument, NULL, 'A' },
    { "cmp-mod",                 required_argument, NULL, 'd' },
    { "max-gap",                 required_argument, NULL, 'g' },
-   { "fac-len",                 required_argument, NULL, 'w' },
-   { "sim-rat",                 required_argument, NULL, 'R' },
-   { "opn-gap",                 required_argument, NULL, 'O' },
-   { "ext-gap",                 required_argument, NULL, 'E' },
-   { "rot-file",                required_argument, NULL, 'r' },
-   { "num-threads",             required_argument, NULL, 'T' },
+   { "seqs-file",               required_argument, NULL, 'p' },
+   { "output-file",             required_argument, NULL, 'o' },
+   { "block-length",            optional_argument, NULL, 'b' },
+   { "q-length",                optional_argument, NULL, 'q' },
+   { "ref-file",                optional_argument, NULL, 't' },
+   { "outliers-file",           optional_argument, NULL, 'l' },
+   { "max-dist",                optional_argument, NULL, 'k' },
+   { "distance",                optional_argument, NULL, 'D' },
+   { "aln-type",                optional_argument, NULL, 'A' },
+   { "fac-len",                 optional_argument, NULL, 'w' },
+   { "sim-rat",                 optional_argument, NULL, 'R' },
+   { "opn-gap",                 optional_argument, NULL, 'O' },
+   { "ext-gap",                 optional_argument, NULL, 'E' },
+   { "rot-file",                optional_argument, NULL, 'r' },
+   { "num-threads",             optional_argument, NULL, 'T' },
+   { "percent-refine",          optional_argument, NULL, 'P' },
    { "help",                    no_argument,       NULL, 'h' },
    { NULL,                      0,                 NULL, 0   }
  };
@@ -75,12 +76,13 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
    sw -> O                              = -10.0;
    sw -> E                              = -1.0;
    sw -> R                              = 0.10;
+   sw -> P                              = 1.0;
    sw -> d                              = 0;
-   sw -> b                              = 10;
+   sw -> b                              = 20;
    sw -> q                              = 5;
    args = 0;
 
-   while ( ( opt = getopt_long ( argc, argv, "a:b:q:p:t:o:k:D:A:T:w:r:d:l:O:E:R:h", long_options, &oi ) ) != - 1 )
+   while ( ( opt = getopt_long ( argc, argv, "a:b:q:p:t:o:k:D:A:T:w:r:d:l:O:E:R:P:h", long_options, &oi ) ) != - 1 )
     {
       switch ( opt )
        {
@@ -175,6 +177,15 @@ int decode_switches ( int argc, char * argv [], struct TSwitch * sw )
            sw -> O = val;
            break;
 
+         case 'P':
+           val = strtod ( optarg, &ep );
+           if ( optarg == ep )
+            {
+              return ( 0 );
+            }
+           sw -> P = val;
+           break;
+
          case 'E':
            val = strtod ( optarg, &ep );
            if ( optarg == ep )
@@ -259,8 +270,10 @@ void usage ( void )
    fprintf ( stdout, "  -E, --ext-gap             <dbl>     Affine gap extension penalty (default: -1.0).\n" );
    fprintf ( stdout, "  -R, --sim-rat             <dbl>     Ratio of minimum allowed to maximal score based on\n"
                      "                                      the sub matrix used (default: 0.1).\n" );
-   fprintf ( stdout, "  -b, --num-blocks          <int>     Number of blocks to partition the sequences\n"
-                     "                                      used with option `-d 3' (default: 10). \n" );
+   fprintf ( stdout, "  -P, --percent-refine      <dbl>     Refine the alignment done with option `-d 3' by\n"
+                     "                                      checking a percentage of each end (default: 1). \n" );
+   fprintf ( stdout, "  -b, --block-length        <int>     Block length to partition the sequences into -\n"
+                     "                                      used with option `-d 3' (default: 20). \n" );
    fprintf ( stdout, "  -q, --q-length            <int>     Q-gram length to be used with option `-d 3'\n"
                      "                                      (default: 5). \n" );
    fprintf ( stdout, "  -T, --num-threads         <int>     Number of threads to be used (default: 1).\n" );

@@ -1,0 +1,6 @@
+/ahocorasick
+/libdatrie*
+/libsdsl
+/sdsl-lite
+bear
+*.o

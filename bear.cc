@@ -134,6 +134,19 @@ int main(int argc, char **argv)
 			}
 		}
 
+		if ( d == 3 )
+		{
+			if ( sw . P < 0 || sw . P >= 50.0 )
+			{
+				fprintf ( stderr, " Error: The optional percentage flag should be in the range of 0 to 49%%.\n" );
+				return ( 1 );
+			}
+			if ( sw . q < 2 || sw . q >= sw . b )
+			{
+				fprintf ( stderr, " Error: The length of the q-gram must be reasonable.\n" );
+				return ( 1 );
+			}
+		}
 
                 patterns_filename       = sw . patterns_filename;
 		if ( patterns_filename == NULL )
@@ -750,7 +763,7 @@ int main(int argc, char **argv)
 				exit( EXIT_FAILURE );
 			}
 
-			fprintf ( stderr, " Number of blocks b = %d and q = %d.\n", sw . b, sw . q );
+			fprintf ( stderr, " Length of block = %d, q = %d and refinement %1.2f%%.\n", sw . b, sw . q, sw . P );
 
 			/* For every sequence i */
 			#pragma omp parallel for
@@ -768,15 +781,9 @@ int main(int argc, char **argv)
 					if ( i == j ) continue;
 
 					unsigned int n = strlen ( ( char * ) seq[j] );
-					if ( sw . b < 1 || sw . b > m - sw . q + 1  || sw . b > n - sw . q + 1 )
+					if ( sw . b > m - sw . q + 1  || sw . b > n - sw . q + 1 )
 					{
-						fprintf( stderr, " Error: Illegal number of blocks.\n" );
-						exit ( 1 );
-					}
-
-					if ( sw . q >= m || sw . q >= n )
-					{
-						fprintf( stderr, " Error: Illegal q-gram length.\n" );
+						fprintf( stderr, " Error: Illegal block length.\n" );
 						exit ( 1 );
 					}
 

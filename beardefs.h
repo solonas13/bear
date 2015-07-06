@@ -20,7 +20,7 @@
 #define DEL                     '$'
 #define DEL_STR                 "$"
 #define ERR                      24
-#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*U"   //Proteins alphabet
+#define PROT                    "ARNDCQEGHILKMFPSTWYVBZX*"   //Proteins alphabet
 #define DNA                     "ATGCSWRYKMBVHDN"            //IUPAC alphabet
 #define NUC_SCORING_MATRIX_SIZE 15
 #define PRO_SCORING_MATRIX_SIZE 24
@@ -49,6 +49,7 @@ struct TSwitch
    double         	O;
    double	        E;
    double         	R;
+   double         	P;
    double         	min_sim;
    unsigned int         w;
    unsigned int		T;	
@@ -91,12 +92,13 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, unsigned int l, unsigned int * ii, unsigned int * jj, unsigned int * distance );
 unsigned int upgma_dist ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R, unsigned char ** seq );
 unsigned int upgma_sim ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R, unsigned char ** seq );
-unsigned int nuc_char_to_index ( char a );
-unsigned int pro_char_to_index ( char a );
+int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw );
 int nuc_delta ( char a, char b );
 int pro_delta ( char a, char b );
-unsigned int create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation );
+void init_substitution_score_tables ( void );
+void create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation );
+void create_backward_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation );
 TPOcc * unique ( TPOcc * first, TPOcc * last );
 int decode_switches ( int argc, char * argv [], struct TSwitch * sw );
-double gettime( void );
+double gettime ( void );
 void usage ( void );
