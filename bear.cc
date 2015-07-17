@@ -788,8 +788,6 @@ int main(int argc, char **argv)
 					}
 
 					sw . k = n + m;
-					D[i][j] . err = n + m;
-					unsigned int ii, jj;
 					unsigned int distance = ( int ) DBL_MAX;
 					unsigned int rotation = 0;
 
@@ -825,9 +823,9 @@ int main(int argc, char **argv)
 		fprintf ( stderr, " Starting the clustering\n" );
 		if ( d == 0 || d == 1 || d == 3 )
 			upgma_dist ( D, num_seqs, sw, R, seq );
-		if ( d == 2 )
+		else if ( d == 2 )
 			upgma_sim ( D, num_seqs, sw, R, seq );
-		
+
 		fprintf ( stderr, " Preparing the output\n" );
 
 		if ( ! ( out_fd = fopen ( output_filename, "w") ) )

@@ -69,8 +69,6 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	xxy[m + m] = '\0';
 	strcat ( ( char * ) xxy, ( char * ) y );
 	xxy[m + m + n] = '\0';
-        
-	//fprintf(stderr, " %s.\n", xxy );
 
         /* Compute the suffix array */
         SA = ( INT * ) malloc( ( mmn ) * sizeof( INT ) );
@@ -114,7 +112,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
         }
 
 	/* Ranking of q-grams and creation of x' and y' */
-	int b = m / sw . b;
+	int b = (int) ( m / sw . b );
 	int q = sw . q;
 
 	//fprintf(stderr, " %d %d.\n", b, q );
@@ -137,7 +135,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	}
         //fprintf(stderr, " SA[0]: %d.\n", SA[0] );
 
-	/* Loop through the LCP array to rank the rest q-grams in the suffix array */	
+	/* Loop through the LCP array to rank the rest q-grams in the suffix array */
 	for ( INT i = 1; i <= mmn - q; i++ )
 	{
 		INT lcp = LCP[i];
@@ -276,6 +274,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	//refine
 	if ( sw . P > 0 )
 	{
+		
 		unsigned char * rot_str;
 		if ( ( rot_str = ( unsigned char * ) calloc ( m + 1, sizeof ( unsigned char ) ) ) == NULL )
 		{
@@ -286,10 +285,11 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 		create_rotation ( x, rot, rot_str );
 		rot = rot + refine ( rot_str, m, y, n, sw );
 		free ( rot_str );
+		
 	}
 
-	( * distance ) = min_dist;
-	( * rotation ) = rot;
+	( * distance ) = (unsigned int) min_dist;
+	( * rotation ) = (unsigned int) rot;
 
 	/* De-allocate the memory */	
 	free ( D );
@@ -350,11 +350,11 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
     memcpy ( Xp, x, sectionLength * sizeof ( unsigned char ) );
     memset ( Xp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
     memcpy ( Xp + 2 * sectionLength * sizeof ( unsigned char ), &x[ m - sectionLength ], sectionLength * sizeof ( unsigned char ) );
-    Xp[3 * sectionLength] = '\0';
+    Xp[sl3] = '\0';
     memcpy ( Yp, y, sectionLength * sizeof ( unsigned char ) );
     memset ( Yp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
     memcpy ( Yp + 2 * sectionLength * sizeof ( unsigned char ), &y[ n - sectionLength ], sectionLength * sizeof ( unsigned char ) );
-    Yp[3 * sectionLength] = '\0';
+    Yp[sl3] = '\0';
 
     unsigned int i, j, r, rotation;
     double max_score = -DBL_MAX;
@@ -369,7 +369,7 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
 	fprintf ( stderr, " Error: 'd0' could not be allocated!\n");
 	return 0;
     }
-    if ( ( d1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL  )
+    if ( ( d1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
     {
 	fprintf ( stderr, " Error: 'd1' could not be allocated!\n");
 	return 0;
@@ -405,7 +405,11 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
 
 	yr[0] = '\0';
 
-	create_rotation ( Xp, r, yr );
+	if ( r < 2 * sectionLength ) {
+	    create_rotation ( Xp, r, yr );
+	} else {
+	    create_backward_rotation ( Xp, sl3 - r, yr );
+	}
 
 	memset ( d0, 0, sizeof ( double ) * sl3 + 1 );
 	memset ( d1, 0, sizeof ( double ) * sl3 + 1 );
@@ -509,11 +513,11 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
     free ( Xp );
     free ( Yp );
     free ( yr );
-    free( d0 );
-    free( d1 );
-    free( t0 );
-    free( t1 );
-    free( in );
+    free ( d0 );
+    free ( d1 );
+    free ( t0 );
+    free ( t1 );
+    free ( in );
 
     return rotation;
 }
