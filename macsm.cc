@@ -776,7 +776,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		fprintf ( stderr, " Error: Cannot allocate memory for Tr.\n" );
 		return 0;
 	}
-	for ( int j = 0; j < n; j++ )
+	for ( unsigned int j = 0; j < n; j++ )
 		tr[j] = t[n - j - 1];
 	tr[n] = '\0';
 
@@ -797,13 +797,12 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			fprintf ( stderr, " Error: Cannot allocate memory for xx[%d]!\n", i );
 			return 0;
 		}
-		for ( int j = 0; j < mm; j++ )
+		for ( unsigned int j = 0; j < mm; j++ )
 			xxr[i][j] = xx[i][mm - j - 1];
 		xxr[i][mm] = '\0';
 	}
 
-
-	fprintf ( stderr, " Matching starts\n" );
+	fprintf ( stderr, " ED Matching starts\n" );
 	for ( int i = 0; i < matches; i++ )
 	{
 		int jj = F[i];		// this is the ID of fragment.
@@ -813,7 +812,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			unsigned int mm = m[w] * 2 - 1;
 
 			int ii = P[i];
-			int iir = n - P[i] - mf[jj];
+			unsigned int iir = n - P[i] - mf[jj];
 
 			int r = mm - ind[jj] - mf[jj];
 			int l = ind[jj];
@@ -823,7 +822,7 @@ unsigned int macsmf_ed( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			int pxx = ind[jj] + mf[jj];
 			int pt = ii + mf[jj];
 			int pxxr = mm - ind[jj];
-			int ptr = iir + mf[jj];
+			unsigned int ptr = iir + mf[jj];
 
 			int * Sr;
 			int * Sl;
@@ -1227,7 +1226,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 		xxr[i][mm] = '\0';
 	}
 
-	fprintf ( stderr, " Matching starts\n" );
+	fprintf ( stderr, " HD Matching starts\n" );
 	for ( int i = 0; i < matches; i++ )
 	{
 		int jj = F[i];		// this is the ID of fragment.
@@ -1237,7 +1236,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			unsigned int mm = m[w] * 2 - 1;
 
 			int ii = P[i];
-			int iir = n - P[i] - mf[jj];
+			unsigned int iir = n - P[i] - mf[jj];
 
 			
 			int r = mm - ind[jj] - mf[jj];
@@ -1248,7 +1247,7 @@ unsigned int macsmf_hd( unsigned char ** x, unsigned char * t, struct TSwitch sw
 			int pxx = ind[jj] + mf[jj];
 			int pt = ii + mf[jj];
 			int pxxr = mm - ind[jj];
-			int ptr = iir + mf[jj];
+			unsigned int ptr = iir + mf[jj];
 
 			unsigned int * Sr;
 			unsigned int * Sl;

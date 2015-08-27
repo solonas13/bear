@@ -439,7 +439,8 @@ int main(int argc, char **argv)
 		
 		/* Multiple Circular Approximate String Matching */
 		fprintf ( stderr, " Starting the multiple circular approximate string matching\n" );
-		if ( d == 0 )
+		//if ( d == 0 )
+		if ( sw . D == 0 ) //AR Edit
 		{
 			if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
 			{
