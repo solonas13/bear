@@ -34,6 +34,7 @@ int main(int argc, char **argv)
 	FILE *          in_fd;                  // the input file descriptor
 	FILE *          out_fd;                 // the output file descriptor
 	FILE *          outl_fd;                // the outliers file descriptor
+	//FILE *          rotsAndScores_fd;       // AR used to store info for debugging
         char *          patterns_filename;      // the patterns input file name
         char *          text_filename;          // the text input file name
         char *          output_filename;        // the output file name
@@ -729,6 +730,13 @@ int main(int argc, char **argv)
 						exit( EXIT_FAILURE );
 					}
 				}
+				
+				//AR open file to write debugging info
+				/*if ( ! ( rotsAndScores_fd = fopen ( "rotsAndScores.2.txt", "w") ) )
+				{
+					fprintf ( stderr, " Error: Cannot open file rotsAndScores.2.txt!\n" );
+					return ( 1 );
+				}*/
 
 				/* For every sequence i */
 				#pragma omp parallel for
@@ -749,9 +757,15 @@ int main(int argc, char **argv)
 						cyc_nw_ls ( seq[i], m, seq[j], n, sw, &score, &rot );
 						
 						D[i][j] . err = score;
-						D[i][j] . rot = rot;		
+						D[i][j] . rot = rot;
+						
+						//AR write out scores and rotations
+						//fprintf ( rotsAndScores_fd, "i: %02d, j: %02d, dst: %08.2f, rot: %04u\n", i, j, D[i][j] . err, D[i][j] . rot );
 					}
 				}
+
+				//AR close debugging file
+				//fclose(rotsAndScores_fd);
 			}	
 		}
 
@@ -766,6 +780,13 @@ int main(int argc, char **argv)
 
 			fprintf ( stderr, " Length of block = %d, q = %d and refinement %1.2f%%.\n", sw . b, sw . q, sw . P );
 
+			//AR open file to write debugging info
+			/*if ( ! ( rotsAndScores_fd = fopen ( "rotsAndScores.3.txt", "w") ) )
+			{
+				fprintf ( stderr, " Error: Cannot open file rotsAndScores.3.txt!\n" );
+				return ( 1 );
+			}*/
+			
 			/* For every sequence i */
 			#pragma omp parallel for
 			for ( int i = 0; i < num_seqs; i++ )
@@ -794,11 +815,16 @@ int main(int argc, char **argv)
 
 					circular_sequence_comparison ( seq[i], seq[j], sw, &rotation, &distance );
 
-					D[i][j] . err = distance;
+					D[i][j] . err = (double) distance;
 					D[i][j] . rot = rotation;
 
+					//AR write out scores and rotations
+					//fprintf ( rotsAndScores_fd, "i: %02d, j: %02d, dst: %08.2f, rot: %04u\n", i, j, D[i][j] . err, D[i][j] . rot );
 				}
-			}	
+			}
+			
+			//AR close debugging file
+			//fclose(rotsAndScores_fd);
 		}
 
 		#if 0

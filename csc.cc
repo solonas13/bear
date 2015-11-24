@@ -287,6 +287,8 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 		free ( rot_str );
 		
 	}
+	
+	fprintf( stderr, "rot final: %d\n", rot );
 
 	( * distance ) = (unsigned int) min_dist;
 	( * rotation ) = (unsigned int) rot;
@@ -328,6 +330,11 @@ void partitioning ( INT i, INT j, INT f, INT m, INT * mf, INT * ind )
 	mf[j + i * f] = last - first + 1;
 }
 
+/*
+ * The new refine method uses 3n*sw.P/100 long seqs and match_char represents
+ * a correct match score regardless of the base being matched, thus reducing
+ * gap opening and promoting substitution instead
+ */
 int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw )
 {
     init_substitution_score_tables ();
@@ -356,7 +363,8 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
     memcpy ( Yp + 2 * sectionLength * sizeof ( unsigned char ), &y[ n - sectionLength ], sectionLength * sizeof ( unsigned char ) );
     Yp[sl3] = '\0';
 
-    unsigned int i, j, r, rotation;
+    unsigned int i, j, r;
+    int rotation;
     double max_score = -DBL_MAX;
 
     double * d0;
@@ -518,6 +526,8 @@ int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int 
     free ( t0 );
     free ( t1 );
     free ( in );
+    
+    fprintf ( stderr, "Refinement: %d\n", rotation );
 
     return rotation;
 }

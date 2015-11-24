@@ -42,26 +42,56 @@ void init_substitution_score_tables ( void )
     }
 }
 
+/*
+ * The new methods have any base that matches a DEL character return an exact
+ * matching score for the first nucleotide base or amino acid (A).
+ */
 /* Returns the score for matching character a and b based on EDNAFULL matrix */
 int nuc_delta ( char a, char b )
- {
-    if ( a == DEL && b == DEL ) {
-	return 10;
-    }
-    else if ( a == DEL || b == DEL ) {
-	return -10;
+{
+    if ( a == DEL || b == DEL ) {
+	a = DNA[0];
+	b = DNA[0];
     }
     return EDNAFULL_matrix[ EDNA[(int)a] ][ EDNA[(int)b] ];
- }
+}
 
- /* Returns the score for matching character a and b based on EBLOSUM62 matrix */
+/* Returns the score for matching character a and b based on EBLOSUM62 matrix */
 int pro_delta ( char a, char b )
 {
-    if ( a == DEL && b == DEL ) {
-	return 10;
-    }
-    else if ( a == DEL || b == DEL ) {
-	return -10;
+    if ( a == DEL || b == DEL ) {
+	a = PROT[0];
+	b = PROT[0];
     }
     return EBLOSUM62_matrix[ BLOSUM[(int)a] ][ BLOSUM[(int)b] ];
 }
+
+///*
+// * This is the old code where an exact match of DEL chars returned a very high
+// * score and a mismatch with DEL a very bad score, and was used to enforce
+// * excellent matches in the middle of strings and small mismatches at either
+// * end of the strings; used in the refine() function
+// */
+// /* Returns the score for matching character a and b based on EDNAFULL matrix */
+// int nuc_delta ( char a, char b )
+//  {
+//     if ( a == DEL && b == DEL ) {
+// 	return 10;
+//     }
+//     else if ( a == DEL || b == DEL ) {
+// 	return -10;
+//     }
+//     return EDNAFULL_matrix[ EDNA[(int)a] ][ EDNA[(int)b] ];
+//  }
+// 
+//  /* Returns the score for matching character a and b based on EBLOSUM62 matrix */
+// int pro_delta ( char a, char b )
+// {
+//     if ( a == DEL && b == DEL ) {
+// 	return 10;
+//     }
+//     else if ( a == DEL || b == DEL ) {
+// 	return -10;
+//     }
+//     return EBLOSUM62_matrix[ BLOSUM[(int)a] ][ BLOSUM[(int)b] ];
+// }
