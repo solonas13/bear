@@ -36,6 +36,7 @@ void init_substitution_score_tables ( void )
     for ( i = 0; i < NUC_SCORING_MATRIX_SIZE; i ++ ) {
 	EDNA[(int)edna[i]] = i;
     }
+    EDNA[(int)'U'] = 1; //Setting RNA U = T
     char blosum[] = PROT;
     for ( i = 0; i < PRO_SCORING_MATRIX_SIZE; i ++ ) {
 	BLOSUM[(int)blosum[i]] = i;

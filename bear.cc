@@ -62,6 +62,7 @@ int main(int argc, char **argv)
         else
         {
                 if      ( ! strcmp ( "DNA", sw . alphabet ) )   { alphabet = ( char * ) DNA;  sw . matrix = 0; }
+                else if ( ! strcmp ( "RNA", sw . alphabet ) )   { alphabet = ( char * ) RNA;  sw . matrix = 0; }
                 else if ( ! strcmp ( "PROT", sw . alphabet ) )  { alphabet = ( char * ) PROT; sw . matrix = 1; }
                 else
                 {
