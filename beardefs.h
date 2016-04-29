@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+#ifndef __BEAR__
+#define __BEAR__
+
 #define ALLOC_SIZE               10000
 #define DEL                     '$'
 #define DEL_STR                 "$"
@@ -28,10 +31,11 @@
 #define WORD_LEN 		64
 #define max(a,b) ((a) > (b)) ? (a) : (b)
 #define min(a,b) ((a) < (b)) ? (a) : (b)
+#define nuc_delta(a,b) ((a) == DEL | (b) == DEL) ? 0 : EDNAFULL_matrix[ EDNA[(int)(a)] ][ EDNA[(int)(b)] ]
+#define pro_delta(a,b) ((a) == DEL | (b) == DEL) ? 0 : EBLOSUM62_matrix[ BLOSUM[(int)(a)] ][ BLOSUM[(int)(b)] ]
 
 #include <tuple>
 
-using namespace std;
 typedef unsigned long int WORD;
 
 struct TSwitch
@@ -71,12 +75,16 @@ struct TPOcc
    unsigned int		rot;
  };
 
-typedef tuple<int,int,int> mytuple;
+typedef std::tuple<int,int,int> mytuple;
 
 typedef int32_t INT;
+
 unsigned int LCParray ( unsigned char *text, INT n, INT * SA, INT * ISA, INT * LCP );
 void partitioning ( INT i, INT j, INT f, INT m, INT * mf, INT * ind );
 unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
+unsigned int sacsc_refinement (  unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
+unsigned int nw_refine ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, double o, double e, double * score, struct TSwitch sw );
+int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw );
 
 unsigned int pcsa_ed( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
 unsigned int pcsa_hd( unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance );
@@ -93,9 +101,8 @@ unsigned int bcf_maxshift_hd_ls ( unsigned char * p, unsigned int m, unsigned  c
 unsigned int bcf_maxshift_ed_ls ( unsigned char * p, unsigned int m, unsigned  char * t, unsigned int n, unsigned int l, unsigned int * ii, unsigned int * jj, unsigned int * distance );
 unsigned int upgma_dist ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R, unsigned char ** seq );
 unsigned int upgma_sim ( TPOcc ** POcc, unsigned int d, struct TSwitch  sw, int * R, unsigned char ** seq );
-int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw );
-int nuc_delta ( char a, char b );
-int pro_delta ( char a, char b );
+//int nuc_delta ( char a, char b );
+//int pro_delta ( char a, char b );
 void init_substitution_score_tables ( void );
 void create_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation );
 void create_backward_rotation ( unsigned char * x, unsigned int offset, unsigned char * rotation );
@@ -103,3 +110,6 @@ TPOcc * unique ( TPOcc * first, TPOcc * last );
 int decode_switches ( int argc, char * argv [], struct TSwitch * sw );
 double gettime ( void );
 void usage ( void );
+
+#endif
+

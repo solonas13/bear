@@ -1,5 +1,10 @@
 #! /bin/sh
 
+cd libFLASM
+make clean
+make
+cd ..
+
 tar -xvf sdsl-lite.tar.gz
 cd sdsl-lite
 ./install.sh "$(pwd)"/libsdsl

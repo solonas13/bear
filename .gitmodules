@@ -1,0 +1,3 @@
+[submodule "libFLASM"]
+	path = libFLASM
+	url = https://github.com/webmasterar/libFLASM.git

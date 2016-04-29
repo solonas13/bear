@@ -18,14 +18,15 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <algorithm>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <float.h>
+#include "globals.h"
+#include "EBLOSUM62.h"
+#include "EDNAFULL.h"
 #include "beardefs.h"
-
-#define max(a,b) ((a) > (b)) ? (a) : (b)
-#define min(a,b) ((a) < (b)) ? (a) : (b)
 
 /*
 The Smith-Waterman algorithm with affine penalty scores

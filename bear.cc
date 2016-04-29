@@ -25,7 +25,14 @@
 #include <float.h>
 #include <limits.h>
 #include <omp.h>
+#include <libflasm.h>
+#include "globals.h"
+#include "EDNAFULL.h"
+#include "EBLOSUM62.h"
 #include "beardefs.h"
+
+using namespace std;
+using namespace libflasm;
 
 int main(int argc, char **argv)
 {
@@ -89,11 +96,6 @@ int main(int argc, char **argv)
 
 		if ( d == 1 )
 		{
-			if ( sw . w > WORD_LEN - 1 )
-			{
-				fprintf ( stderr, " Error: The length of factor (-w) must be smaller than %d!\n", WORD_LEN );
-				return ( 1 );
-			}
 			if ( sw . w <= 0 )
 			{
 				fprintf ( stderr, " Error: The length of factor (-w) must be larger than 1!\n" );
@@ -138,7 +140,7 @@ int main(int argc, char **argv)
 
 		if ( d == 3 )
 		{
-			if ( sw . P < 0 || sw . P >= 50.0 )
+			if ( sw . P < 0 || sw . P >= 49.0 )
 			{
 				fprintf ( stderr, " Error: The optional percentage flag should be in the range of 0 to 49%%.\n" );
 				return ( 1 );
@@ -441,8 +443,7 @@ int main(int argc, char **argv)
 		
 		/* Multiple Circular Approximate String Matching */
 		fprintf ( stderr, " Starting the multiple circular approximate string matching\n" );
-		//if ( d == 0 )
-		if ( sw . D == 0 ) //AR Edit
+		if ( sw . D == 0 ) //AR Edit to if ( d==0 )
 		{
 			if ( ! ( macsmf_hd ( seq, t, sw, &POcc, &NOcc ) ) )
 			{
@@ -611,18 +612,34 @@ int main(int argc, char **argv)
 				{
 					if ( i == j ) continue;
 
-					/* Here we compute these coordinates using the Max-Shift algorithm and store it to M[ii] */
+					/* Here we compute these coordinates using libFLASM and store it to M[ii] */
 					unsigned int n = strlen ( ( char * ) seq[j] );
 
 					D[i][j] . err = m - 1;
 					unsigned int ii, jj;
-					unsigned int distance = ( int ) DBL_MAX;
+					unsigned int distance = ( unsigned int ) DBL_MAX;
 					unsigned int l = min ( sw . w, m );
 
 					if ( sw . D == 0 )
-						bcf_maxshift_hd_ls ( xiw, mm, seq[j], n, l, &ii, &jj, &distance );
+					{
+						ResultTupleSet results = flasm_hd ( xiw, mm, seq[j], n, l, sw . k );
+						if ( results . size () > 0 ) {
+							ResultTupleSetIterator it = results . begin();
+							ii = ( * it ) . pos_t;
+							jj = ( * it ) . pos_x;
+							distance = ( * it ) . error;
+						}
+					}
 					else
-						bcf_maxshift_ed_ls ( xiw, mm, seq[j], n, l, &ii, &jj, &distance );
+					{
+						ResultTupleSet results = flasm_ed ( xiw, mm, seq[j], n, l, sw . k );
+						if ( results . size () > 0 ) {
+							ResultTupleSetIterator it = results . begin();
+							ii = ( * it ) . pos_t;
+							jj = ( * it ) . pos_x;
+							distance = ( * it ) . error;
+						}
+					}
 
 					D[i][j] . err = distance;
 
@@ -637,7 +654,7 @@ int main(int argc, char **argv)
 						int a = jj - ii;
 						int b = m - ii - 1;
 						int c = min ( a, b );
-						D[i][j] . rot = m - c;		
+						D[i][j] . rot = m - c;
 					}
 				}
 				free ( xiw );

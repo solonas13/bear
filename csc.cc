@@ -25,7 +25,9 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <divsufsort.h>
-
+#include "globals.h"
+#include "EDNAFULL.h"
+#include "EBLOSUM62.h"
 #include "beardefs.h"
 
 #include <sdsl/bit_vectors.hpp>					  // include header for bit vectors
@@ -69,6 +71,8 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	xxy[m + m] = '\0';
 	strcat ( ( char * ) xxy, ( char * ) y );
 	xxy[m + m + n] = '\0';
+        
+	//fprintf(stderr, " %s.\n", xxy );
 
         /* Compute the suffix array */
         SA = ( INT * ) malloc( ( mmn ) * sizeof( INT ) );
@@ -115,7 +119,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	int b = (int) ( m / sw . b );
 	int q = sw . q;
 
-	//fprintf(stderr, " %d %d.\n", b, q );
+	//fprintf(stderr, " %d %d.\n", b, q ); getchar();
 	int sigma = 0;
         INT mm = m + m - q + 1; 
         INT nn = n - q + 1; 
@@ -135,8 +139,8 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 	}
         //fprintf(stderr, " SA[0]: %d.\n", SA[0] );
 
-	/* Loop through the LCP array to rank the rest q-grams in the suffix array */
-	for ( INT i = 1; i <= mmn - q; i++ )
+	/* Loop through the LCP array to rank the rest q-grams in the suffix array */	
+	for ( INT i = 1; i < mmn; i++ )
 	{
 		INT lcp = LCP[i];
 		INT ii = SA[i];
@@ -212,6 +216,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 			D[i]++;
 		}
 	}	
+	//fprintf ( stderr, "D0 = %d\n", D[0] ); getchar();
 
 	/* Step 2: Compute the distances for position 0 */
 	int min_dist = 0;
@@ -231,7 +236,7 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 		}
 		min_dist += D[i];
 	}
-	//fprintf ( stderr, "D0 = %d\n", min_dist );
+	//fprintf ( stderr, "D0 = %d\n", D[0] ); getchar();
 
 	/* Step 3: Compute the rest of the distances */
 	int rot = 0;
@@ -264,34 +269,20 @@ unsigned int circular_sequence_comparison (  unsigned char * x, unsigned char * 
 			}
 			dist += D[j];
 		}
+		//fprintf ( stderr, "dist = %d\n", dist );
 		if ( dist < min_dist )
 		{
 			rot = i;
 			min_dist = dist;
 		}
 	}
+	( * distance ) = ( unsigned int ) min_dist; 
+	( * rotation ) = ( unsigned int ) rot;
 
-	//refine
 	if ( sw . P > 0 )
 	{
-		
-		unsigned char * rot_str;
-		if ( ( rot_str = ( unsigned char * ) calloc ( m + 1, sizeof ( unsigned char ) ) ) == NULL )
-		{
-			fprintf ( stderr, " Error: Could not allocate rot_str!\n" );
-			return ( 1 );
-		}
-		rot_str[m] = '\0';
-		create_rotation ( x, rot, rot_str );
-		rot = rot + refine ( rot_str, m, y, n, sw );
-		free ( rot_str );
-		
+		sacsc_refinement ( x, y, sw, rotation, distance );
 	}
-	
-	fprintf( stderr, "rot final: %d\n", rot );
-
-	( * distance ) = (unsigned int) min_dist;
-	( * rotation ) = (unsigned int) rot;
 
 	/* De-allocate the memory */	
 	free ( D );
@@ -330,204 +321,199 @@ void partitioning ( INT i, INT j, INT f, INT m, INT * mf, INT * ind )
 	mf[j + i * f] = last - first + 1;
 }
 
-/*
- * The new refine method uses 3n*sw.P/100 long seqs and match_char represents
- * a correct match score regardless of the base being matched, thus reducing
- * gap opening and promoting substitution instead
+/**
+ * Needleman-Wunsch for the sacsc_refinement method
  */
-int refine ( unsigned char * x, unsigned int m, unsigned char * y, unsigned int n, struct TSwitch sw )
+unsigned int nw_refine ( unsigned char * p, unsigned int m, unsigned char * t, unsigned int n, double * score, struct TSwitch sw )
 {
-    init_substitution_score_tables ();
+	int i, j;
+	double g = sw . O;
+	double h = sw . E;
+	double u, v, w;
 
-    //create X and Y prine (Xp, Yp)
-    unsigned int sectionLength = ( unsigned int ) floor ( ( sw . P / 100 ) * std::min ( m, n ) );
-    unsigned int sl3 = sectionLength * 3;
-    unsigned char repeat_char = DEL;
-    unsigned char * Xp, * Yp;
-    if ( ( Xp = ( unsigned char * ) calloc ( sl3 + 1, sizeof ( unsigned char ) ) ) == NULL ) {
-	fprintf ( stderr, " Error: could not allocate Xp.\n" );
-	return 1;
-    }
-    if ( ( Yp = ( unsigned char * ) calloc ( sl3 + 1, sizeof ( unsigned char ) ) ) == NULL ) {
-	fprintf ( stderr, " Error: could not allocate Yp.\n" );
-	return 1;
-    }
-    
-    //make Xp and Yp contain prefix, repeat_char middle and suffix e.g. AATGCA$$$$$GGGAT
-    memcpy ( Xp, x, sectionLength * sizeof ( unsigned char ) );
-    memset ( Xp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
-    memcpy ( Xp + 2 * sectionLength * sizeof ( unsigned char ), &x[ m - sectionLength ], sectionLength * sizeof ( unsigned char ) );
-    Xp[sl3] = '\0';
-    memcpy ( Yp, y, sectionLength * sizeof ( unsigned char ) );
-    memset ( Yp + sectionLength * sizeof ( unsigned char ), repeat_char, sectionLength * sizeof ( unsigned char ) );
-    memcpy ( Yp + 2 * sectionLength * sizeof ( unsigned char ), &y[ n - sectionLength ], sectionLength * sizeof ( unsigned char ) );
-    Yp[sl3] = '\0';
+	double ** T;
+	double ** I;
+	double ** D;
 
-    unsigned int i, j, r;
-    int rotation;
-    double max_score = -DBL_MAX;
+	if ( ( T = ( double ** ) calloc ( ( m + 1 ) , sizeof( double * ) ) ) == NULL )
+        {
+                fprintf( stderr, " Error: T could not be allocated!\n");
+                return ( 0 );
+        }
+        for ( i = 0; i < m + 1; i ++ )
+        {
+                if ( ( T[i] = ( double * ) calloc ( ( n + 1 ) , sizeof( double ) ) ) == NULL )
+                {
+                        fprintf( stderr, " Error: T could not be allocated!\n");
+                        return ( 0 );
+                }
+        }
+	if ( ( I = ( double ** ) calloc ( ( m + 1 ) , sizeof( double * ) ) ) == NULL )
+        {
+                fprintf( stderr, " Error: I could not be allocated!\n");
+                return ( 0 );
+        }
+        for ( i = 0; i < m + 1; i ++ )
+        {
+                if ( ( I[i] = ( double * ) calloc ( ( n + 1 ) , sizeof( double ) ) ) == NULL )
+                {
+                        fprintf( stderr, " Error: I could not be allocated!\n");
+                        return ( 0 );
+                }
+        }
+	if ( ( D = ( double ** ) calloc ( ( m + 1 ) , sizeof( double * ) ) ) == NULL )
+        {
+                fprintf( stderr, " Error: D could not be allocated!\n");
+                return ( 0 );
+        }
+        for ( i = 0; i < m + 1; i ++ )
+        {
+                if ( ( D[i] = ( double * ) calloc ( ( n + 1 ) , sizeof( double ) ) ) == NULL )
+                {
+                        fprintf( stderr, " Error: D could not be allocated!\n");
+                        return ( 0 );
+                }
+        }
 
-    double * d0;
-    double * d1;
-    double * t0;
-    double * t1;
-    double * in;
-    if ( ( d0 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
-    {
-	fprintf ( stderr, " Error: 'd0' could not be allocated!\n");
-	return 0;
-    }
-    if ( ( d1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
-    {
-	fprintf ( stderr, " Error: 'd1' could not be allocated!\n");
-	return 0;
-    }
-    if ( ( t0 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
-    {
-	fprintf ( stderr, " Error: 't0' could not be allocated!\n");
-	return 0;
-    }
-    if ( ( t1 = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
-    {
-	fprintf ( stderr, " Error: 't1' could not be allocated!\n");
-	return 0;
-    }
-    if ( ( in = ( double * ) calloc ( sl3 + 1 , sizeof ( double ) ) ) == NULL )
-    {
-	fprintf ( stderr, " Error: 'in' could not be allocated!\n");
-	return 0;
-    }
-
-    unsigned char * yr;
-    if ( ( yr = ( unsigned char * ) calloc ( ( sl3 + 1 ) , sizeof ( unsigned char ) ) ) == NULL )
-    {
-	fprintf( stderr, " Error: 'yr' could not be allocated!\n");
-	return 0;
-    }
-
-    for ( r = 0; r < sl3; r++ )
-    {
-        if ( r >= sectionLength && r < 2 * sectionLength ) {
-	    continue;
+        for ( i = 0; i < m + 1; i++ )
+	{	
+		D[i][0] = -DBL_MAX;
+		I[i][0] = -DBL_MAX;
 	}
 
-	yr[0] = '\0';
-
-	if ( r < 2 * sectionLength ) {
-	    create_rotation ( Xp, r, yr );
-	} else {
-	    create_backward_rotation ( Xp, sl3 - r, yr );
+        for ( j = 1; j < n + 1; j++ )
+	{	
+		D[0][j] = -DBL_MAX;
+		I[0][j] = -DBL_MAX;
 	}
 
-	memset ( d0, 0, sizeof ( double ) * sl3 + 1 );
-	memset ( d1, 0, sizeof ( double ) * sl3 + 1 );
-	memset ( t0, 0, sizeof ( double ) * sl3 + 1 );
-	memset ( t1, 0, sizeof ( double ) * sl3 + 1 );
-	memset ( in, 0, sizeof ( double ) * sl3 + 1 );
+	T[0][0] = 0;
+	T[1][0] = g; 
 
-	for ( j = 0; j < sl3 + 1; j++ )
+        for ( i = 2; i < m + 1; i++ )
+		T[i][0] = T[i - 1][0] + h;
+
+	T[0][1] = g;
+
+        for ( j = 2; j < n + 1; j++ )
+		T[0][j] = T[0][j - 1] + h;
+
+	for( i = 1; i < m + 1; i++ )
 	{
-	    d0[j] = -DBL_MAX;
-	    in[j] = -DBL_MAX;
-	}
+        	for( j = 1; j < n + 1; j++ )
+        	{
+			D[i][j] = max ( D[i - 1][j] + h, T[i - 1][j] + g );
+			u = D[i][j];
 
-	t0[0] = 0;
-	t0[1] = sw . O;
-	t1[0] = sw . O; 
+			I[i][j] = max ( I[i][j - 1] + h, T[i][j - 1] + g );
+			v = I[i][j];
 
-	for ( j = 2; j < sl3 + 1; j++ ) {
-	    t0[j] = t0[j - 1] + sw . E;
-	}
+			w = T[i - 1][j - 1] + ( sw . matrix == 0 ) ? nuc_delta ( t[j - 1], p[i - 1] ) : pro_delta ( t[j - 1], p[i - 1] );
 
-	for ( i = 1; i < sl3 + 1; i++ )
+			T[i][j] = max ( w, max ( u, v ) );
+        	}
+    	}
+	( * score ) = T[m][n];
+
+        for ( i = 0; i < m + 1; i ++ )
 	{
-	    for ( j = 0; j < sl3 + 1; j++ )
-	    {
-		double u, v, w;
+		free ( D[i] );
+		free ( I[i] );
+		free ( T[i] );
+	}
+	free ( I );
+	free ( D );
+	free ( T );
+	
+	return EXIT_SUCCESS;
+}
 
-		switch ( i % 2 ) 
+/*
+ * The new refine method uses 3*sw.P*sw.b long seqs and match_char (DEL)
+ * represents a neutral match score regardless of the base being matched, thus
+ * reducing gap opening and promoting substitution instead (see nuc_delta())
+ */
+unsigned int sacsc_refinement (  unsigned char * x, unsigned char * y, struct TSwitch  sw, unsigned int * rotation, unsigned int * distance )
+{
+	init_substitution_score_tables ();
+	unsigned int rot = ( * rotation );
+	unsigned int dist = ( * distance );
+
+	unsigned int m = strlen ( ( char * ) x );
+	unsigned int n = strlen ( ( char * ) y );
+	unsigned char * xr;
+	xr = ( unsigned char * ) calloc( ( m + 1 ) , sizeof( unsigned char ) );
+	create_rotation ( x, rot, xr );
+	
+	unsigned char * X;
+	unsigned char * Y;
+
+	unsigned int sl = sw . P * ( sw . b ); //section length
+	sl = min ( sl, min ( m/2, n/2 ) );
+
+	X = ( unsigned char * ) calloc( ( 3 * sl + 1 ) , sizeof( unsigned char ) );
+	Y = ( unsigned char * ) calloc( ( 3 * sl + 1 ) , sizeof( unsigned char ) );
+
+
+	memcpy ( &X[0], &xr[0], sl );
+	for ( int i = 0; i < sl; i++ )
+		X[sl + i] = DEL;
+	memcpy ( &X[sl + sl], &xr[m - sl], sl );
+	X[3 * sl] = '\0';
+	
+	memcpy ( &Y[0], &y[0], sl );
+	for ( int i = 0; i < sl; i++ )
+		Y[sl + i] = DEL;
+	memcpy ( &Y[sl + sl], &y[n - sl], sl );
+	Y[3 * sl] = '\0';
+
+	unsigned int mm = sl + sl + sl;
+	unsigned int nn = sl + sl + sl;
+
+	double score = -DBL_MAX;
+	double max_score = score;
+	unsigned int rrot = 0;
+	unsigned char * Xr = ( unsigned char * ) calloc( ( 3 * sl + 1 ) , sizeof( unsigned char ) );
+	for ( int i = 0; i < mm; i++ )
+	{
+		if ( i >= sl && i < 2 * sl )
+			continue;
+	
+		Xr[0] = '\0';
+		create_rotation ( X, i, Xr );
+
+		nw_refine ( Xr, mm , Y, nn, &score, sw );
+		if ( score > max_score )
 		{
+			max_score = score;
+			rrot = i;
+		}	 
+	}
+	free ( Xr);
 
-		  case 0:
-
-		    if ( j == 0 )
-		    {
-			d0[j] = -DBL_MAX;
-			in[j] = -DBL_MAX;
-			if ( i >= 2 ) {
-			    t0[0] = t1[0] + sw . E;
-			}
-		    }
-		    else 
-		    {
-			d0[j] = std::max ( d1[j] + sw . E, t1[j] + sw . O );
-			u = d0[j];
-
-			in[j] = std::max ( in[j - 1] + sw . E, t0[j - 1] + sw . O ); //i0
-			v = in[j];
-
-			w = t1[j - 1] + (double) ( ( sw . matrix ) ? pro_delta ( Yp[j - 1], yr[i - 1] ) : nuc_delta ( Yp[j - 1], yr[i - 1] ) );
-
-			t0[j] = std::max ( w, std::max ( u, v ) );
-
-			if ( i == sl3 && j == sl3 && t0[j] > max_score )
-			{
-			    max_score = t0[j];
-			    rotation  = ( r >= sectionLength ) ? -( sl3 - r ) : r;
-			}
-		    }
-
-		    break;
-
-		  case 1:
-
-		    if ( j == 0 )
-		    {
-			d1[j] = -DBL_MAX;
-			in[j] = -DBL_MAX;
-			if ( i >= 2 ) {
-			    t1[0] = t0[0] + sw . E;
-			}
-		    }	
-		    else 
-		    {
-			d1[j] = std::max ( d0[j] + sw . E, t0[j] + sw . O );
-			u = d1[j];
-
-			in[j] = std::max ( in[j - 1] + sw . E, t1[j - 1] + sw . O ); //i1
-			v = in[j];
-
-			w = t0[j - 1] + (double) ( ( sw . matrix ) ? pro_delta ( Yp[j - 1], yr[i - 1] ) : nuc_delta ( Yp[j - 1], yr[i - 1] ) );
-
-			t1[j] = std::max ( w, std::max ( u, v ) );
-
-			if ( i == sl3 && j == sl3 && t1[j] > max_score )
-			{
-			    max_score = t1[j];
-			    rotation  = ( r >= sectionLength ) ? -( sl3 - r ) : r;
-			}
-		    }
-
-		    break;
-
-		}
-
-	    }
-
+	int final_rot;
+	if ( rrot < sl )
+	{
+		final_rot = rot + rrot;
+	}
+	else
+	{
+		final_rot = rot - ( 3 * sl - rrot );
 	}
 
-    }
+	if ( final_rot > ( int ) m )
+	{
+		( * rotation ) = final_rot % m;	
+	}
+	else if ( final_rot < 0 )
+	{
+		( * rotation ) = m + final_rot;
+	}
+	else
+		( * rotation ) = final_rot;
 
-    free ( Xp );
-    free ( Yp );
-    free ( yr );
-    free ( d0 );
-    free ( d1 );
-    free ( t0 );
-    free ( t1 );
-    free ( in );
-    
-    fprintf ( stderr, "Refinement: %d\n", rotation );
-
-    return rotation;
+	free ( xr );
+	free ( X );
+	free ( Y );
+	return EXIT_SUCCESS;
 }

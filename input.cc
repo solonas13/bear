@@ -250,8 +250,8 @@ void usage ( void )
  {
    fprintf ( stdout, " Usage: bear <options>\n" );
    fprintf ( stdout, " Standard (Mandatory):\n" );
-   fprintf ( stdout, "  -a, --alphabet            <str>     `DNA' for nucleotide  sequences  or `PROT' for\n"
-                     "                                      protein  sequences. \n" );
+   fprintf ( stdout, "  -a, --alphabet            <str>     `DNA' or `RNA' for nucleotide  sequences or\n"
+                     "                                      `PROT' for protein  sequences. \n" );
    fprintf ( stdout, "  -p, --seqs-file           <str>     MultiFASTA input filename.\n" );
    fprintf ( stdout, "  -o, --output-file         <str>     Output filename.\n" );
    fprintf ( stdout, "  -d, --cmp-mod             <int>     Comparison model (0 for small pairwise distance;\n"
