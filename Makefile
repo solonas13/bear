@@ -41,4 +41,4 @@ clean-all:
 	rm -r libdatrie-0.2.8 
 	rm -r libsdsl
 	rm -r sdsl-lite
-
+	rm -r libFLASM

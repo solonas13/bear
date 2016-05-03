@@ -2,5 +2,6 @@
 /libdatrie*
 /libsdsl
 /sdsl-lite
+/libFLASM
 bear
 *.o
