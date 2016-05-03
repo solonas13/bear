@@ -1,6 +1,8 @@
 #! /bin/sh
 
+git submodule update --init
 cd libFLASM
+unzip seqan.zip
 make clean
 make
 cd ..
