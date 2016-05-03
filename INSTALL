@@ -2,9 +2,9 @@ Pre-installation Instructions
 =============================
 
    This installation requires the pre-installation of the cmake tool,
-a C++ compiler, and the libraries: Aho-Corasick Library and libdatrie.
+library zlib, and a C++ compiler.
 
-For Linux, you can install these libraries via
+For Linux, you can install all other required libraries via
 
  $ ./pre-install.sh 
 
