@@ -622,7 +622,7 @@ int main(int argc, char **argv)
 
 					if ( sw . D == 0 )
 					{
-						ResultTupleSet results = flasm_hd ( xiw, mm, seq[j], n, l, sw . k );
+						ResultTupleSet results = flasm_hd ( xiw, mm, seq[j], n, l, sw . k, false );
 						if ( results . size () > 0 ) {
 							ResultTupleSetIterator it = results . begin();
 							ii = ( * it ) . pos_t;
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
 					}
 					else
 					{
-						ResultTupleSet results = flasm_ed ( xiw, mm, seq[j], n, l, sw . k );
+						ResultTupleSet results = flasm_ed ( xiw, mm, seq[j], n, l, sw . k, false );
 						if ( results . size () > 0 ) {
 							ResultTupleSetIterator it = results . begin();
 							ii = ( * it ) . pos_t;
