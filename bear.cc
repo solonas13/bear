@@ -622,21 +622,21 @@ int main(int argc, char **argv)
 
 					if ( sw . D == 0 )
 					{
-						ResultTupleSet results = flasm_hd ( xiw, mm, seq[j], n, l, sw . k, false );
+						ResultTupleSet results = flasm_hd ( seq[j], n, xiw, mm,  l, sw . k, false );
 						if ( results . size () > 0 ) {
 							ResultTupleSetIterator it = results . begin();
-							ii = ( * it ) . pos_t;
-							jj = ( * it ) . pos_x;
+							ii = ( * it ) . pos_x;
+							jj = ( * it ) . pos_t;
 							distance = ( * it ) . error;
 						}
 					}
 					else
 					{
-						ResultTupleSet results = flasm_ed ( xiw, mm, seq[j], n, l, sw . k, false );
+						ResultTupleSet results = flasm_ed ( seq[j], n, xiw, mm, l, sw . k, false );
 						if ( results . size () > 0 ) {
 							ResultTupleSetIterator it = results . begin();
-							ii = ( * it ) . pos_t;
-							jj = ( * it ) . pos_x;
+							ii = ( * it ) . pos_x;
+							jj = ( * it ) . pos_t;
 							distance = ( * it ) . error;
 						}
 					}
