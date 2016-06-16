@@ -256,7 +256,7 @@ void usage ( void )
    fprintf ( stdout, "  -o, --output-file         <str>     Output filename.\n" );
    fprintf ( stdout, "  -d, --cmp-mod             <int>     Comparison model (0 for small pairwise distance;\n"
                      "                                      or 1 for pairwise distance of fixed-length factors;\n"
-                     "                                      or 2 for affine gap penalty with sub matrices).\n"
+                     "                                      or 2 for affine gap penalty with sub matrices;\n"
                      "                                      or 3 for blockwise q-gram distance).\n" );
    fprintf ( stdout, " Optional:\n" );
    fprintf ( stdout, "  -k, --max-dist            <int>     Maximum distance between pairs of sequences to be\n"
