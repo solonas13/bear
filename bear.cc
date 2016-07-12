@@ -41,7 +41,6 @@ int main(int argc, char **argv)
 	FILE *          in_fd;                  // the input file descriptor
 	FILE *          out_fd;                 // the output file descriptor
 	FILE *          outl_fd;                // the outliers file descriptor
-	//FILE *          rotsAndScores_fd;       // AR used to store info for debugging
         char *          patterns_filename;      // the patterns input file name
         char *          text_filename;          // the text input file name
         char *          output_filename;        // the output file name
@@ -56,6 +55,8 @@ int main(int argc, char **argv)
 	unsigned int    i, j;
 	unsigned int    d, q, b;	
 	unsigned int    total_length = 0;
+	int 		workTotal 	= 1;	// work to be done
+	int 		workCompleted 	= 0;	// work completed
 
 	/* Decodes the arguments */
         i = decode_switches ( argc, argv, &sw );
@@ -287,6 +288,8 @@ int main(int argc, char **argv)
 		
 	} while( c != EOF );
 
+	workTotal = num_seqs * num_seqs - num_seqs;
+
 	seq[ num_seqs ] = NULL;
 
 	pat = ( TPat * ) calloc ( num_seqs , sizeof ( TPat ) ); 
@@ -516,9 +519,13 @@ int main(int argc, char **argv)
 					exit( EXIT_FAILURE );
 				}
 			}
+
 			if ( sw . D == 0 )
 			{
 				fprintf ( stderr, " Distance model: Hamming distance with k = %d.\n", sw . k );
+
+				printProgress ( workCompleted, workTotal );
+
 				//#pragma omp parallel for
 				for ( int i = 0; i < num_seqs; i++ )
 				{
@@ -539,13 +546,19 @@ int main(int argc, char **argv)
 						pcsa_hd ( seq[i], seq[j], sw, &rotation, &distance );
 						
 						D[i][j] . err = distance;
-						D[i][j] . rot = rotation;		
+						D[i][j] . rot = rotation;
+
+						workCompleted ++;
+						printProgress ( workCompleted, workTotal );
 					}
 				}
 			}
 			else
 			{
 				fprintf ( stderr, " Distance model: edit distance with k = %d.\n", sw . k );
+
+				printProgress ( workCompleted, workTotal );
+
 				//#pragma omp parallel for
 				for ( int i = 0; i < num_seqs; i++ )
 				{
@@ -566,7 +579,10 @@ int main(int argc, char **argv)
 						pcsa_ed ( seq[i], seq[j], sw, &rotation, &distance );
 						
 						D[i][j] . err = distance;
-						D[i][j] . rot = rotation;		
+						D[i][j] . rot = rotation;
+
+						workCompleted ++;
+						printProgress ( workCompleted, workTotal );
 					}
 				}
 			}
@@ -589,6 +605,8 @@ int main(int argc, char **argv)
 			{
 				fprintf ( stderr, " Distance model: edit distance with w = %d and k = %d.\n", sw . w, sw . k );
 			}
+
+			printProgress ( workCompleted, workTotal );
 
 			/* For every sequence i */
 			#pragma omp parallel for
@@ -656,9 +674,13 @@ int main(int argc, char **argv)
 						int c = min ( a, b );
 						D[i][j] . rot = m - c;
 					}
+
+					workCompleted ++;
+					printProgress ( workCompleted, workTotal );
+
 				}
 				free ( xiw );
-			}	
+			}
 		}
 
 		if ( d == 2 )
@@ -684,6 +706,8 @@ int main(int argc, char **argv)
 			{
 				fprintf ( stderr, " Alignment type: local with O = %lf and E = %lf.\n", sw . O, sw . E );
 				fprintf( stderr, " The minimum allowed similarity score is %lf.\n", sw . min_sim );
+
+				printProgress ( workCompleted, workTotal );
 
 				/* For every sequence i */
 				#pragma omp parallel for
@@ -729,6 +753,9 @@ int main(int argc, char **argv)
 							int c = min ( a, b );
 							D[i][j] . rot = m - c;		
 						}
+						
+						workCompleted ++;
+						printProgress ( workCompleted, workTotal );
 
 					}
 					free ( xx );
@@ -748,13 +775,8 @@ int main(int argc, char **argv)
 						exit( EXIT_FAILURE );
 					}
 				}
-				
-				//AR open file to write debugging info
-				/*if ( ! ( rotsAndScores_fd = fopen ( "rotsAndScores.2.txt", "w") ) )
-				{
-					fprintf ( stderr, " Error: Cannot open file rotsAndScores.2.txt!\n" );
-					return ( 1 );
-				}*/
+
+				printProgress ( workCompleted, workTotal );
 
 				/* For every sequence i */
 				#pragma omp parallel for
@@ -776,14 +798,11 @@ int main(int argc, char **argv)
 						
 						D[i][j] . err = score;
 						D[i][j] . rot = rot;
-						
-						//AR write out scores and rotations
-						//fprintf ( rotsAndScores_fd, "i: %02d, j: %02d, dst: %08.2f, rot: %04u\n", i, j, D[i][j] . err, D[i][j] . rot );
+
+						workCompleted ++;
+						printProgress ( workCompleted, workTotal );
 					}
 				}
-
-				//AR close debugging file
-				//fclose(rotsAndScores_fd);
 			}	
 		}
 
@@ -798,13 +817,8 @@ int main(int argc, char **argv)
 
 			fprintf ( stderr, " Length of block = %d, q = %d and refinement %1.2f%%.\n", sw . b, sw . q, sw . P );
 
-			//AR open file to write debugging info
-			/*if ( ! ( rotsAndScores_fd = fopen ( "rotsAndScores.3.txt", "w") ) )
-			{
-				fprintf ( stderr, " Error: Cannot open file rotsAndScores.3.txt!\n" );
-				return ( 1 );
-			}*/
-			
+			printProgress ( workCompleted, workTotal );
+
 			/* For every sequence i */
 			#pragma omp parallel for
 			for ( int i = 0; i < num_seqs; i++ )
@@ -836,13 +850,10 @@ int main(int argc, char **argv)
 					D[i][j] . err = (double) distance;
 					D[i][j] . rot = rotation;
 
-					//AR write out scores and rotations
-					//fprintf ( rotsAndScores_fd, "i: %02d, j: %02d, dst: %08.2f, rot: %04u\n", i, j, D[i][j] . err, D[i][j] . rot );
+					workCompleted ++;
+					printProgress ( workCompleted, workTotal );
 				}
 			}
-			
-			//AR close debugging file
-			//fclose(rotsAndScores_fd);
 		}
 
 		#if 0
@@ -944,7 +955,7 @@ int main(int argc, char **argv)
 	double end = gettime();
 
         fprintf( stderr, "Elapsed time for processing %d sequence(s): %lf secs.\n", num_seqs, ( end - start ) );
-	
+
 	/* Deallocate */
 	for ( i = 0; i < num_seqs; i ++ )
 	{

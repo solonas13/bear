@@ -68,6 +68,19 @@ void create_backward_rotation ( unsigned char * x, unsigned int offset, unsigned
 	rotation[m] = '\0';
 }
 
+void printProgress ( int workCompleted, int workTotal )
+{
+	double percentage = ( double ) workCompleted / ( double ) workTotal;
+	int pval = ( int ) ( percentage * 100.0 );
+	int lpad = ( int ) ( percentage * ( double ) PBWIDTH );
+	int rpad = PBWIDTH - lpad;
+	printf ( "\r %3d%% [%.*s%*s]", pval, lpad, PBSTR, rpad, "" );
+	fflush ( stdout );
+	if ( pval >= 100 ) {
+		printf ( "\n" );
+	}
+}
+
 int binSearch( int value, TPat * array, int num )
 {
    int mid = (num - 1) / 2;
